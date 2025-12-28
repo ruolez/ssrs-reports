@@ -1,0 +1,152 @@
+{% extends "base.html" %}
+
+{% block title %}Data Sources - RDL Report Viewer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Data Sources</h1>
+    <div class="page-actions">
+        <button class="btn btn-primary" onclick="openModal('connectionModal')">
+            ➕ Add Connection
+        </button>
+    </div>
+</div>
+
+<!-- Connections Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h2 class="card-title">SQL Server Connections</h2>
+    </div>
+    <div class="card-body">
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>Server</th>
+                        <th>Database</th>
+                        <th>Username</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="connectionsTable">
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Mappings Section -->
+<div class="card">
+    <div class="card-header">
+        <h2 class="card-title">RDL Data Source Mappings</h2>
+    </div>
+    <div class="card-body">
+        <p class="text-secondary mb-4">Map RDL data source names (from your report files) to actual SQL Server connections.</p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>RDL Data Source Name</th>
+                        <th>Mapped Connection</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="mappingsTable">
+                    <tr>
+                        <td colspan="3" class="text-center text-secondary">No mappings configured</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+        <button class="btn btn-secondary mt-4" onclick="openModal('mappingModal')">
+            ➕ Add Mapping
+        </button>
+    </div>
+</div>
+
+<!-- Connection Modal -->
+<div class="modal-overlay" id="connectionModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="connectionModalTitle">Add Connection</h3>
+            <button class="modal-close" onclick="closeModal('connectionModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="connectionForm">
+                <input type="hidden" id="connId">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="connName" required placeholder="e.g., Production DB">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Server</label>
+                        <input type="text" class="form-input" id="connServer" required placeholder="e.g., 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-input" id="connPort" value="1433">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Database</label>
+                    <input type="text" class="form-input" id="connDatabase" required placeholder="Database name">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-input" id="connUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="connPassword">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="testConnection()">🔌 Test</button>
+            <button class="btn btn-secondary" onclick="closeModal('connectionModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveConnection()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Mapping Modal -->
+<div class="modal-overlay" id="mappingModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title">Add Data Source Mapping</h3>
+            <button class="modal-close" onclick="closeModal('mappingModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="mappingForm">
+                <div class="form-group">
+                    <label class="form-label">RDL Data Source Name</label>
+                    <input type="text" class="form-input" id="rdlName" required placeholder="e.g., DB_Admin">
+                    <small class="text-secondary">This is the name used in your RDL report files</small>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">SQL Server Connection</label>
+                    <select class="form-select" id="mappingConnection" required>
+                        <option value="">Select a connection...</option>
+                    </select>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('mappingModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveMapping()">Save</button>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/datasources.js') }}"></script>
+{% endblock %}

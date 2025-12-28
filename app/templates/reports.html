@@ -1,0 +1,30 @@
+{% extends "base.html" %}
+
+{% block title %}Reports - RDL Report Viewer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <h1 class="page-title">Reports</h1>
+    <div class="page-actions">
+        <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="searchInput" class="search-input" placeholder="Search reports...">
+        </div>
+        <button class="btn btn-primary" id="scanBtn">
+            🔄 Scan Reports
+        </button>
+    </div>
+</div>
+
+<div id="reportsContainer">
+    <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-title">No reports found</div>
+        <div class="empty-state-text">Click "Scan Reports" to discover RDL files in the reports directory.</div>
+    </div>
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script src="{{ url_for('static', filename='js/reports.js') }}"></script>
+{% endblock %}

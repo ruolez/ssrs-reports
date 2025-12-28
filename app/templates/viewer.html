@@ -1,0 +1,91 @@
+{% extends "base.html" %}
+
+{% block title %}Report Viewer - RDL Report Viewer{% endblock %}
+
+{% block content %}
+<div class="page-header">
+    <div>
+        <a href="/" class="text-secondary" style="font-size: 0.875rem;">← Back to Reports</a>
+        <h1 class="page-title" id="reportTitle">Loading...</h1>
+    </div>
+    <div class="page-actions">
+        <div class="dropdown">
+            <button class="btn btn-secondary" id="exportBtn" disabled>
+                📥 Export
+            </button>
+            <div class="dropdown-menu" id="exportMenu">
+                <button class="dropdown-item" onclick="exportReport('excel')">📊 Excel (.xlsx)</button>
+                <button class="dropdown-item" onclick="exportReport('pdf')">📄 PDF</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div id="parameterForm" class="param-form hidden">
+    <!-- Parameters will be inserted here -->
+</div>
+
+<div id="reportContent">
+    <div class="empty-state">
+        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-title">Configure data sources</div>
+        <div class="empty-state-text">Please configure your SQL Server connections in <a href="/datasources">Data Sources</a> before running this report.</div>
+    </div>
+</div>
+
+<style>
+/* Dropdown styles */
+.dropdown {
+    position: relative;
+    display: inline-block;
+}
+
+.dropdown-menu {
+    position: absolute;
+    top: 100%;
+    right: 0;
+    background-color: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    min-width: 160px;
+    box-shadow: 0 4px 12px var(--shadow);
+    z-index: 100;
+    display: none;
+}
+
+.dropdown-menu.show {
+    display: block;
+}
+
+.dropdown-item {
+    display: block;
+    width: 100%;
+    padding: 10px 16px;
+    text-align: left;
+    background: none;
+    border: none;
+    cursor: pointer;
+    font-size: 0.9375rem;
+    color: var(--on-surface);
+}
+
+.dropdown-item:hover {
+    background-color: var(--primary-light);
+}
+
+.dropdown-item:first-child {
+    border-radius: 8px 8px 0 0;
+}
+
+.dropdown-item:last-child {
+    border-radius: 0 0 8px 8px;
+}
+</style>
+{% endblock %}
+
+{% block scripts %}
+<script>
+    const REPORT_ID = {{ report_id }};
+</script>
+<script src="{{ url_for('static', filename='js/viewer.js') }}"></script>
+{% endblock %}

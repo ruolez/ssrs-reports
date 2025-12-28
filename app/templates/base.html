@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <title>{% block title %}RDL Report Viewer{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="nav-brand">
+            <a href="/">RDL Report Viewer</a>
+        </div>
+        <div class="nav-links">
+            <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Reports</a>
+            <a href="/datasources" class="nav-link {% if request.path == '/datasources' %}active{% endif %}">Data Sources</a>
+            <a href="/settings" class="nav-link {% if request.path == '/settings' %}active{% endif %}">Settings</a>
+        </div>
+        <div class="nav-actions">
+            <button class="theme-toggle" id="themeToggle" title="Toggle theme">
+                <span class="theme-icon-dark">☀️</span>
+                <span class="theme-icon-light">🌙</span>
+            </button>
+        </div>
+    </nav>
+
+    <main class="container">
+        {% block content %}{% endblock %}
+    </main>
+
+    <div id="loadingOverlay" class="loading-overlay hidden">
+        <div class="loading-spinner"></div>
+    </div>
+
+    <div id="toastContainer" class="toast-container"></div>
+
+    <script src="{{ url_for('static', filename='js/app.js') }}"></script>
+    {% block scripts %}{% endblock %}
+</body>
+</html>

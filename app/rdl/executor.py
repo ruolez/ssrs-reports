@@ -89,6 +89,16 @@ class ReportExecutor:
                 report_param_name = match.group(1)
                 sql_params[param_name] = parameters.get(report_param_name, '')
 
+        # Convert @ParamName to %(ParamName)s format for pymssql
+        if sql_params:
+            for param_name in sql_params.keys():
+                query = re.sub(
+                    r'@' + param_name + r'\b',
+                    '%(' + param_name + ')s',
+                    query,
+                    flags=re.IGNORECASE
+                )
+
         # Execute query
         return mssql.execute_query(query, sql_params if sql_params else None)
 

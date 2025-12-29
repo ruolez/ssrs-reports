@@ -16,7 +16,7 @@ NC='\033[0m' # No Color
 APP_NAME="ssrs-reports"
 GITHUB_REPO="https://github.com/ruolez/ssrs-reports.git"
 INSTALL_DIR="/opt/ssrs-reports"
-DEFAULT_PORT=5557
+DEFAULT_PORT=80
 
 # Print banner
 print_banner() {
@@ -148,14 +148,11 @@ clean_install() {
     # Create data directories
     mkdir -p data/reports
 
-    # Ask for port
-    read -p "Enter port number (default: $DEFAULT_PORT): " PORT
-    PORT=${PORT:-$DEFAULT_PORT}
+    # Set port to 80 for production
+    PORT=$DEFAULT_PORT
 
-    # Update port in docker-compose.yml if different from default
-    if [ "$PORT" != "5557" ]; then
-        sed -i "s/5557:5000/$PORT:5000/g" docker-compose.yml
-    fi
+    # Update port in docker-compose.yml
+    sed -i "s/5557:5000/$PORT:5000/g" docker-compose.yml
 
     # Build and start containers
     print_info "Building and starting containers..."

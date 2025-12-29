@@ -224,6 +224,9 @@ update_install() {
     git fetch origin
     git pull origin main
 
+    # Update port to 80 for production
+    sed -i "s/5557:5000/80:5000/g" docker-compose.yml
+
     # Stop containers
     print_info "Stopping containers..."
     docker compose down

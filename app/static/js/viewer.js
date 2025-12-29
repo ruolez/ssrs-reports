@@ -15,7 +15,9 @@ async function loadReport() {
         document.title = `${reportData.display_name} - RDL Report Viewer`;
 
         // Render parameter form
-        const parameters = JSON.parse(reportData.parameters || '[]');
+        const parameters = typeof reportData.parameters === 'string'
+            ? JSON.parse(reportData.parameters || '[]')
+            : (reportData.parameters || []);
         renderParameterForm(parameters);
 
         // Auto-run if no required parameters

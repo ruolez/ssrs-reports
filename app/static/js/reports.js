@@ -66,7 +66,9 @@ function renderReports(reports) {
 
     for (const folder of folders) {
         grouped[folder].forEach(report => {
-            const params = JSON.parse(report.parameters || '[]');
+            const params = typeof report.parameters === 'string'
+                ? JSON.parse(report.parameters || '[]')
+                : (report.parameters || []);
             const paramCount = params.length;
 
             html += `

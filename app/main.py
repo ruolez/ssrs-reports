@@ -10,6 +10,7 @@ from .export.pdf import export_to_pdf
 
 app = Flask(__name__)
 app.config['JSON_SORT_KEYS'] = False
+app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 
 # Initialize database manager
 db = PostgreSQLManager()

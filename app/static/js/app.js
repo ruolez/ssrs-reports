@@ -48,10 +48,28 @@ async function apiCall(url, options = {}) {
     }
 
     const response = await fetch(url, mergedOptions);
-    const data = await response.json();
+
+    // Try to parse JSON, handle non-JSON responses
+    let data;
+    const contentType = response.headers.get('content-type');
+    if (contentType && contentType.includes('application/json')) {
+        try {
+            data = await response.json();
+        } catch (e) {
+            throw new Error('Invalid JSON response from server');
+        }
+    } else {
+        const text = await response.text();
+        throw new Error(text || `HTTP ${response.status}: ${response.statusText}`);
+    }
 
     if (!data.success) {
-        throw new Error(data.error || 'API request failed');
+        // Handle error - ensure it's a string
+        let errorMsg = data.error || data.message || 'API request failed';
+        if (typeof errorMsg === 'object') {
+            errorMsg = JSON.stringify(errorMsg);
+        }
+        throw new Error(errorMsg);
     }
 
     return data;

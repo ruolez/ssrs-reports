@@ -10,7 +10,9 @@ async function loadReports() {
         allReports = data.reports || [];
         renderReports(allReports);
     } catch (error) {
-        showToast('Failed to load reports: ' + error.message, 'error');
+        const errorMsg = error.message || 'Unknown error';
+        showToast('Failed to load reports: ' + errorMsg, 'error');
+        console.error('Load reports error:', error);
     } finally {
         hideLoading();
     }
@@ -195,14 +197,26 @@ async function uploadFiles() {
                     body: formData
                 });
 
+                // Check if response is OK
+                if (!response.ok) {
+                    const text = await response.text();
+                    try {
+                        const errorData = JSON.parse(text);
+                        errors.push(`${file.name}: ${errorData.error || 'Upload failed'}`);
+                    } catch {
+                        errors.push(`${file.name}: HTTP ${response.status}`);
+                    }
+                    continue;
+                }
+
                 const data = await response.json();
                 if (data.success) {
                     successCount++;
                 } else {
-                    errors.push(`${file.name}: ${data.error}`);
+                    errors.push(`${file.name}: ${data.error || 'Unknown error'}`);
                 }
             } catch (e) {
-                errors.push(`${file.name}: ${e.message}`);
+                errors.push(`${file.name}: ${e.message || 'Network error'}`);
             }
         }
 
@@ -211,7 +225,7 @@ async function uploadFiles() {
         }
 
         if (errors.length > 0) {
-            showToast(`Failed: ${errors.join(', ')}`, 'error');
+            errors.forEach(err => showToast(err, 'error'));
         }
 
         // Reset form
@@ -224,7 +238,7 @@ async function uploadFiles() {
         closeModal('uploadModal');
         await loadReports();
     } catch (error) {
-        showToast('Upload failed: ' + error.message, 'error');
+        showToast('Upload failed: ' + (error.message || 'Unknown error'), 'error');
     } finally {
         hideLoading();
     }

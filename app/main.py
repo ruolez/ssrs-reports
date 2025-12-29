@@ -100,6 +100,80 @@ def scan_reports():
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/reports/upload', methods=['POST'])
+def upload_report():
+    try:
+        if 'file' not in request.files:
+            return jsonify({'success': False, 'error': 'No file provided'}), 400
+
+        file = request.files['file']
+        if file.filename == '':
+            return jsonify({'success': False, 'error': 'No file selected'}), 400
+
+        if not file.filename.lower().endswith('.rdl'):
+            return jsonify({'success': False, 'error': 'Only .rdl files are allowed'}), 400
+
+        # Get optional folder from form data
+        folder = request.form.get('folder', '').strip()
+
+        # Sanitize filename
+        filename = os.path.basename(file.filename)
+
+        # Determine save path
+        if folder:
+            save_dir = os.path.join(REPORTS_DIR, folder)
+            os.makedirs(save_dir, exist_ok=True)
+            save_path = os.path.join(save_dir, filename)
+            rel_path = os.path.join(folder, filename)
+        else:
+            save_path = os.path.join(REPORTS_DIR, filename)
+            rel_path = filename
+
+        # Save file
+        file.save(save_path)
+
+        # Parse RDL to extract metadata
+        parser = RdlParser(save_path)
+        report_info = parser.parse()
+
+        # Save to database
+        db.upsert_report({
+            'file_path': rel_path,
+            'display_name': os.path.splitext(filename)[0],
+            'folder': folder or None,
+            'parameters': json.dumps(report_info.get('parameters', [])),
+            'datasources': json.dumps(report_info.get('datasources', []))
+        })
+
+        return jsonify({
+            'success': True,
+            'message': f'Uploaded {filename}',
+            'filename': filename
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/reports/<int:report_id>', methods=['DELETE'])
+def delete_report(report_id):
+    try:
+        report = db.get_report_by_id(report_id)
+        if not report:
+            return jsonify({'success': False, 'error': 'Report not found'}), 404
+
+        # Delete the file
+        file_path = os.path.join(REPORTS_DIR, report['file_path'])
+        if os.path.exists(file_path):
+            os.remove(file_path)
+
+        # Delete from database
+        db.delete_report(report_id)
+
+        return jsonify({'success': True, 'message': 'Report deleted'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/reports/<int:report_id>/execute', methods=['POST'])
 def execute_report(report_id):
     try:

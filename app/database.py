@@ -248,6 +248,15 @@ class PostgreSQLManager:
         finally:
             conn.close()
 
+    def delete_report(self, report_id):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM reports WHERE id = %s', (report_id,))
+                conn.commit()
+        finally:
+            conn.close()
+
     # ============== Settings ==============
 
     def get_all_settings(self):

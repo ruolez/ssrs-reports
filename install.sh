@@ -161,12 +161,21 @@ clean_install() {
     print_info "Building and starting containers..."
     docker compose up -d --build
 
-    # Wait for containers to be healthy
+    # Wait for containers to be healthy with retries
     print_info "Waiting for containers to be ready..."
-    sleep 10
+    MAX_RETRIES=30
+    RETRY_COUNT=0
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            break
+        fi
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        sleep 2
+    done
 
     # Check if running
-    if docker compose ps | grep -q "running"; then
+    if curl -s "http://localhost:$PORT/health" 2>/dev/null | grep -q "healthy"; then
         IP=$(get_ip_address)
         echo
         print_success "Installation complete!"
@@ -233,16 +242,26 @@ update_install() {
     # Also clean up dangling images
     docker images -q --filter "dangling=true" | xargs -r docker rmi 2>/dev/null || true
 
-    # Wait for containers to be ready
+    # Wait for containers to be ready with retries
     print_info "Waiting for containers to be ready..."
-    sleep 10
+    PORT=$(grep -oP '\d+(?=:5000)' docker-compose.yml 2>/dev/null || echo "5557")
+    MAX_RETRIES=30
+    RETRY_COUNT=0
+
+    while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+        if curl -s -o /dev/null -w "%{http_code}" "http://localhost:$PORT/health" 2>/dev/null | grep -q "200"; then
+            break
+        fi
+        RETRY_COUNT=$((RETRY_COUNT + 1))
+        sleep 2
+    done
 
     # Check if running
-    if docker compose ps | grep -q "running"; then
+    if curl -s "http://localhost:$PORT/health" 2>/dev/null | grep -q "healthy"; then
         IP=$(get_ip_address)
         echo
         print_success "Update complete!"
-        echo -e "${GREEN}Application running at: http://${IP}:$(grep -oP '\d+(?=:5000)' docker-compose.yml)${NC}"
+        echo -e "${GREEN}Application running at: http://${IP}:${PORT}${NC}"
         echo
         print_info "Your data and settings have been preserved"
     else

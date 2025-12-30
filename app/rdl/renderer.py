@@ -46,7 +46,7 @@ class ReportRenderer:
         html_parts.append('<tr role="row">')
         for i, col in enumerate(columns):
             header_text = col.get('header_text', '')
-            header_style = self._build_style_string(col.get('header_style', {}))
+            header_style = self._build_style_string(col.get('header_style', {}), exclude_colors=True)
             sortable = col.get('sortable', False)
 
             # Add sort indicator
@@ -139,14 +139,14 @@ class ReportRenderer:
                 pass
         return 'text'
 
-    def _build_style_string(self, style: Dict[str, Any]) -> str:
+    def _build_style_string(self, style: Dict[str, Any], exclude_colors: bool = False) -> str:
         """Convert style dict to CSS string."""
         css_parts = []
 
-        if 'background_color' in style:
+        if not exclude_colors and 'background_color' in style:
             css_parts.append(f"background-color: {style['background_color']}")
 
-        if 'color' in style:
+        if not exclude_colors and 'color' in style:
             css_parts.append(f"color: {style['color']}")
 
         if 'font_size' in style:

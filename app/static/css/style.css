@@ -1683,13 +1683,13 @@ tbody tr:last-child td {
 }
 
 [data-theme="dark"] .report-table th {
-    background-color: #21262d;
-    color: var(--on-surface);
-    border-bottom: 1px solid var(--outline);
+    background-color: #2e8b7a;
+    color: #ffffff;
+    border-bottom: 1px solid #268573;
 }
 
 [data-theme="dark"] .report-table th.sortable:hover {
-    background-color: #30363d;
+    background-color: #268573;
 }
 
 [data-theme="dark"] tbody tr:hover {
@@ -3019,18 +3019,16 @@ tbody tr:last-child td {
     color: var(--on-surface-tertiary);
 }
 
-/* GitHub-style Table Headers in Light Mode */
-:root .report-table th,
+/* Consistent Teal Table Headers */
 [data-theme="light"] .report-table th {
-    background-color: var(--surface-elevated);
-    color: var(--on-surface);
-    border-bottom: 1px solid var(--outline);
+    background-color: #2e8b7a;
+    color: #ffffff;
+    border-bottom: 1px solid #268573;
     font-weight: 600;
 }
 
-:root .report-table th.sortable:hover,
 [data-theme="light"] .report-table th.sortable:hover {
-    background-color: #eaeef2;
+    background-color: #268573;
 }
 
 [data-theme="light"] .report-table tbody tr:nth-child(even) {

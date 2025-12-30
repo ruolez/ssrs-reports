@@ -1697,7 +1697,7 @@ tbody tr:last-child td {
 }
 
 [data-theme="dark"] .report-table tbody tr:nth-child(even) {
-    background-color: rgba(22, 27, 34, 0.5);
+    background-color: #1c2128;
 }
 
 [data-theme="dark"] .report-table tbody tr:hover {

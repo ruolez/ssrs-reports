@@ -3033,17 +3033,14 @@ tbody tr:last-child td {
     background-color: #eaeef2;
 }
 
-:root .report-table tbody tr:nth-child(even),
 [data-theme="light"] .report-table tbody tr:nth-child(even) {
     background-color: rgba(246, 248, 250, 0.5);
 }
 
-:root tbody tr:hover,
 [data-theme="light"] tbody tr:hover {
     background-color: rgba(9, 105, 218, 0.06);
 }
 
-:root .report-table tbody tr:hover,
 [data-theme="light"] .report-table tbody tr:hover {
     background-color: rgba(9, 105, 218, 0.06);
 }

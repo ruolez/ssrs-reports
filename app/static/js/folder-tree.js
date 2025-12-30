@@ -163,8 +163,14 @@ function renderFolderItems(folders, depth = 0) {
 // Select a folder
 function selectFolder(folderId) {
     selectedFolderId = folderId;
+    window.currentFolderId = folderId;
     renderFolderTree();
-    loadReportsForFolder(folderId);
+
+    // Load reports for this folder (function from reports.js)
+    if (typeof loadReports === 'function') {
+        loadReports();
+    }
+
     updateBreadcrumb(folderId);
     updatePageTitle(folderId);
 }

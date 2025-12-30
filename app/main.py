@@ -18,6 +18,9 @@ app.config['MAX_CONTENT_LENGTH'] = 50 * 1024 * 1024  # 50MB max file size
 # Initialize database manager
 db = PostgreSQLManager()
 
+# Initialize/migrate database tables on startup
+db.init_tables()
+
 # Reports directory
 REPORTS_DIR = os.environ.get('REPORTS_DIR', '/app/data/reports')
 

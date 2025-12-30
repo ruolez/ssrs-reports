@@ -2,6 +2,7 @@ import html
 from typing import Dict, List, Any, Optional
 from datetime import datetime, date
 from decimal import Decimal
+from urllib.parse import quote
 from .expression import evaluate_expression, ExpressionContext, get_sort_field, is_lookup_expression
 
 
@@ -304,13 +305,17 @@ class ReportRenderer:
         # Extract report file name from path like /Inventory/Last Two Updates
         report_file = report_name.split('/')[-1] if report_name else ''
 
-        # Build parameter query string
+        # Build parameter query string with proper URL encoding
         param_parts = []
         for param in parameters:
             param_name = param.get('name', '')
             param_expr = param.get('value', '')
             param_value = evaluate_expression(param_expr, context)
-            param_parts.append(f"{param_name}={param_value}")
+            # URL-encode both name and value to handle special characters
+            encoded_name = quote(str(param_name), safe='')
+            encoded_value = quote(str(param_value), safe='')
+            param_parts.append(f"{encoded_name}={encoded_value}")
 
         param_str = '&'.join(param_parts)
-        return f"/viewer/drillthrough?report={report_file}&{param_str}"
+        encoded_report = quote(str(report_file), safe='')
+        return f"/viewer/drillthrough?report={encoded_report}&{param_str}"

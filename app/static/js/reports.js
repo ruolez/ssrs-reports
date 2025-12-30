@@ -64,7 +64,7 @@ function renderReports(reports) {
             <div class="empty-state">
                 <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
                 <div class="empty-state-title">No reports found</div>
-                <div class="empty-state-text">Upload RDL files or drag reports to ${folderName}.</div>
+                <div class="empty-state-text">Upload report files or drag reports to ${folderName}.</div>
             </div>
         `;
         if (typeof lucide !== 'undefined') lucide.createIcons();

@@ -5,14 +5,14 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta http-equiv="Cache-Control" content="no-store, no-cache, must-revalidate">
     <meta http-equiv="Pragma" content="no-cache">
-    <title>{% block title %}RDL Report Viewer{% endblock %}</title>
+    <title>{% block title %}Report Viewer{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <script src="https://unpkg.com/lucide@latest/dist/umd/lucide.min.js"></script>
 </head>
 <body>
     <nav class="navbar">
         <div class="nav-brand">
-            <a href="/">RDL Report Viewer</a>
+            <a href="/">Report Viewer</a>
         </div>
         <div class="nav-links">
             <a href="/" class="nav-link {% if request.path == '/' %}active{% endif %}">Reports</a>

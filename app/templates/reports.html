@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Reports - RDL Report Viewer{% endblock %}
+{% block title %}Reports - Report Viewer{% endblock %}
 
 {% block content %}
 <div class="layout-with-sidebar" id="layoutContainer">
@@ -71,7 +71,7 @@
             <div class="empty-state">
                 <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
                 <div class="empty-state-title">No reports found</div>
-                <div class="empty-state-text">Upload RDL files to get started.</div>
+                <div class="empty-state-text">Upload report files to get started.</div>
             </div>
         </div>
     </div>
@@ -116,17 +116,17 @@
 <div class="modal-overlay" id="uploadModal">
     <div class="modal">
         <div class="modal-header">
-            <h3 class="modal-title">Upload RDL Report</h3>
+            <h3 class="modal-title">Upload Report</h3>
             <button class="modal-close" onclick="closeModal('uploadModal')">&times;</button>
         </div>
         <div class="modal-body">
             <form id="uploadForm">
                 <div class="form-group">
-                    <label class="form-label">RDL File</label>
+                    <label class="form-label">Report File</label>
                     <div class="file-upload-area" id="dropZone">
                         <input type="file" id="fileInput" accept=".rdl" style="display: none;" multiple>
                         <div class="file-upload-icon"><i data-lucide="folder-open" style="width:32px;height:32px;"></i></div>
-                        <div class="file-upload-text">Drag & drop RDL files here or click to browse</div>
+                        <div class="file-upload-text">Drag & drop report files here or click to browse</div>
                         <div class="file-upload-hint">Only .rdl files are accepted</div>
                     </div>
                     <div id="fileList" class="file-list"></div>

@@ -526,7 +526,7 @@ async function saveMapping() {
     const connectionId = document.getElementById('mappingConnection').value;
 
     if (!rdlName) {
-        showToast('Please enter the RDL data source name', 'error');
+        showToast('Please enter the data source name', 'error');
         return;
     }
 

@@ -1023,7 +1023,7 @@ async function loadReport() {
         availableConnections = data.connections || [];
 
         // Update page title
-        document.title = `${reportData.display_name} - RDL Report Viewer`;
+        document.title = `${reportData.display_name} - Report Viewer`;
 
         // Render data source panel
         renderDatasourcePanel();

@@ -1,6 +1,6 @@
 {% extends "base.html" %}
 
-{% block title %}Data Sources - RDL Report Viewer{% endblock %}
+{% block title %}Data Sources - Report Viewer{% endblock %}
 
 {% block content %}
 <div class="page-header">
@@ -75,15 +75,15 @@
 <!-- Mappings Section -->
 <div class="card">
     <div class="card-header">
-        <h2 class="card-title">RDL Data Source Mappings</h2>
+        <h2 class="card-title">Data Source Mappings</h2>
     </div>
     <div class="card-body">
-        <p class="text-secondary mb-4">Map RDL data source names (from your report files) to database connections.</p>
+        <p class="text-secondary mb-4">Map data source names from your report files to database connections.</p>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
-                        <th>RDL Data Source Name</th>
+                        <th>Data Source Name</th>
                         <th>Mapped Connection</th>
                         <th>Status</th>
                     </tr>
@@ -198,9 +198,9 @@
         <div class="modal-body">
             <form id="mappingForm">
                 <div class="form-group">
-                    <label class="form-label">RDL Data Source Name</label>
+                    <label class="form-label">Data Source Name</label>
                     <input type="text" class="form-input" id="rdlName" required placeholder="e.g., DB_Admin">
-                    <small class="text-secondary">This is the name used in your RDL report files</small>
+                    <small class="text-secondary">This is the name used in your report files</small>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Database Connection</label>

@@ -572,6 +572,207 @@ class ColumnResizer {
 
 let columnResizer = null;
 
+// ============== Column Visibility ==============
+class ColumnVisibility {
+    constructor() {
+        this.hiddenColumns = new Set();
+        this.reportId = REPORT_ID;
+        this.menuOpen = false;
+    }
+
+    init() {
+        this.loadState();
+        this.buildMenu();
+        this.applyVisibility();
+        this.updateBadge();
+        this.setupEventListeners();
+    }
+
+    buildMenu() {
+        const menu = document.getElementById('columnVisibilityMenu');
+        if (!menu) return;
+
+        const headers = document.querySelectorAll('.report-table thead tr:first-child th');
+        if (headers.length === 0) {
+            menu.innerHTML = '<div style="padding: 12px; color: var(--on-surface-secondary);">No columns available</div>';
+            return;
+        }
+
+        let html = `
+            <div class="column-visibility-header">
+                <button id="showAllColumns" title="Show all columns">Show All</button>
+                <button id="hideAllColumns" title="Hide all columns">Hide All</button>
+            </div>
+            <div class="column-visibility-list">
+        `;
+
+        headers.forEach((th, idx) => {
+            const columnName = th.textContent.trim() || `Column ${idx + 1}`;
+            const isHidden = this.hiddenColumns.has(idx);
+            html += `
+                <div class="column-visibility-item" data-column="${idx}">
+                    <input type="checkbox" id="colVis_${idx}" ${!isHidden ? 'checked' : ''}>
+                    <label for="colVis_${idx}">${columnName}</label>
+                </div>
+            `;
+        });
+
+        html += '</div>';
+        menu.innerHTML = html;
+
+        // Add event listeners to checkboxes
+        menu.querySelectorAll('.column-visibility-item').forEach(item => {
+            item.addEventListener('click', (e) => {
+                if (e.target.tagName === 'INPUT') return;
+                const checkbox = item.querySelector('input');
+                checkbox.checked = !checkbox.checked;
+                this.toggle(parseInt(item.dataset.column));
+            });
+
+            item.querySelector('input').addEventListener('change', (e) => {
+                this.toggle(parseInt(item.dataset.column));
+            });
+        });
+
+        // Show All / Hide All buttons
+        document.getElementById('showAllColumns')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.showAll();
+        });
+        document.getElementById('hideAllColumns')?.addEventListener('click', (e) => {
+            e.stopPropagation();
+            this.hideAll();
+        });
+    }
+
+    setupEventListeners() {
+        const btn = document.getElementById('toggleColumnsBtn');
+        const menu = document.getElementById('columnVisibilityMenu');
+
+        if (btn) {
+            btn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                this.toggleMenu();
+            });
+        }
+
+        // Close menu when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!e.target.closest('.column-visibility-wrapper')) {
+                this.closeMenu();
+            }
+        });
+    }
+
+    toggleMenu() {
+        const menu = document.getElementById('columnVisibilityMenu');
+        const btn = document.getElementById('toggleColumnsBtn');
+        this.menuOpen = !this.menuOpen;
+        menu.classList.toggle('show', this.menuOpen);
+        btn.classList.toggle('active', this.menuOpen);
+    }
+
+    closeMenu() {
+        const menu = document.getElementById('columnVisibilityMenu');
+        const btn = document.getElementById('toggleColumnsBtn');
+        this.menuOpen = false;
+        menu?.classList.remove('show');
+        btn?.classList.remove('active');
+    }
+
+    toggle(columnIndex) {
+        if (this.hiddenColumns.has(columnIndex)) {
+            this.hiddenColumns.delete(columnIndex);
+        } else {
+            this.hiddenColumns.add(columnIndex);
+        }
+        this.applyVisibility();
+        this.saveState();
+        this.updateBadge();
+    }
+
+    showAll() {
+        this.hiddenColumns.clear();
+        this.applyVisibility();
+        this.saveState();
+        this.updateBadge();
+        this.updateCheckboxes();
+    }
+
+    hideAll() {
+        const headers = document.querySelectorAll('.report-table thead tr:first-child th');
+        headers.forEach((_, idx) => {
+            this.hiddenColumns.add(idx);
+        });
+        this.applyVisibility();
+        this.saveState();
+        this.updateBadge();
+        this.updateCheckboxes();
+    }
+
+    updateCheckboxes() {
+        const menu = document.getElementById('columnVisibilityMenu');
+        if (!menu) return;
+
+        menu.querySelectorAll('.column-visibility-item').forEach(item => {
+            const idx = parseInt(item.dataset.column);
+            const checkbox = item.querySelector('input');
+            checkbox.checked = !this.hiddenColumns.has(idx);
+        });
+    }
+
+    applyVisibility() {
+        const table = document.querySelector('.report-table');
+        if (!table) return;
+
+        // Apply to header cells
+        table.querySelectorAll('thead th').forEach((th, idx) => {
+            th.classList.toggle('column-hidden', this.hiddenColumns.has(idx));
+        });
+
+        // Apply to filter row cells
+        table.querySelectorAll('.filter-row td').forEach((td, idx) => {
+            td.classList.toggle('column-hidden', this.hiddenColumns.has(idx));
+        });
+
+        // Apply to body cells
+        table.querySelectorAll('tbody tr').forEach(row => {
+            row.querySelectorAll('td').forEach((td, idx) => {
+                td.classList.toggle('column-hidden', this.hiddenColumns.has(idx));
+            });
+        });
+    }
+
+    saveState() {
+        const hiddenArray = Array.from(this.hiddenColumns);
+        savePreference(`hiddenColumns_${this.reportId}`, hiddenArray);
+    }
+
+    loadState() {
+        const saved = loadPreference(`hiddenColumns_${this.reportId}`, []);
+        this.hiddenColumns = new Set(saved);
+    }
+
+    updateBadge() {
+        const badge = document.getElementById('columnBadge');
+        if (!badge) return;
+
+        const count = this.hiddenColumns.size;
+        badge.textContent = count;
+        badge.classList.toggle('hidden', count === 0);
+    }
+
+    // Reinitialize when table is reloaded
+    reinit() {
+        this.loadState();
+        this.buildMenu();
+        this.applyVisibility();
+        this.updateBadge();
+    }
+}
+
+const columnVisibility = new ColumnVisibility();
+
 // ============== Keyboard Shortcuts ==============
 function initKeyboardShortcuts() {
     document.addEventListener('keydown', (e) => {
@@ -1341,6 +1542,9 @@ function initializeTableFeatures() {
     // Initialize column resizer
     columnResizer = new ColumnResizer();
     columnResizer.init();
+
+    // Initialize column visibility
+    columnVisibility.init();
 
     // Re-apply any active search
     if (reportSearch.lastTerm) {

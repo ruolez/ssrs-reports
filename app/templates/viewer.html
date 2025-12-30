@@ -87,6 +87,16 @@
             <span>Filters</span>
             <span class="filter-badge hidden" id="filterBadge">0</span>
         </button>
+        <div class="column-visibility-wrapper">
+            <button class="toolbar-btn" id="toggleColumnsBtn" title="Show/Hide Columns">
+                <i data-lucide="columns"></i>
+                <span>Columns</span>
+                <span class="column-visibility-badge hidden" id="columnBadge">0</span>
+            </button>
+            <div class="column-visibility-dropdown" id="columnVisibilityMenu">
+                <!-- Populated by JavaScript -->
+            </div>
+        </div>
         <button class="toolbar-btn" id="toggleSearchBtn" title="Search in Report (Ctrl+F)">
             <i data-lucide="search"></i>
             <span>Search</span>

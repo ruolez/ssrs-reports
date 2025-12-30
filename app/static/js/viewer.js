@@ -1015,6 +1015,33 @@ async function renderParameterForm(parameters) {
                     </div>
                 `;
             }
+        } else if (param.data_type === 'Boolean') {
+            // Boolean parameter - render as radio buttons
+            const boolValue = value === true || value === 'true' || value === 'True';
+            currentParams[param.name] = boolValue;
+            html += `
+                <div class="param-group param-group-boolean">
+                    <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                    <div class="param-radio-group" data-param="${param.name}">
+                        <label class="param-radio-label">
+                            <input type="radio"
+                                   class="param-radio"
+                                   name="${param.name}"
+                                   value="true"
+                                   ${boolValue ? 'checked' : ''}>
+                            <span>Yes</span>
+                        </label>
+                        <label class="param-radio-label">
+                            <input type="radio"
+                                   class="param-radio"
+                                   name="${param.name}"
+                                   value="false"
+                                   ${!boolValue ? 'checked' : ''}>
+                            <span>No</span>
+                        </label>
+                    </div>
+                </div>
+            `;
         } else {
             // Regular text/date input
             currentParams[param.name] = value;
@@ -1172,6 +1199,16 @@ async function renderParameterForm(parameters) {
         // Handle checkbox changes
         checkboxes.forEach(checkbox => {
             checkbox.addEventListener('change', updateSelection);
+        });
+    });
+
+    // Add listeners for boolean radio buttons
+    container.querySelectorAll('.param-radio-group').forEach(group => {
+        const paramName = group.dataset.param;
+        group.querySelectorAll('.param-radio').forEach(radio => {
+            radio.addEventListener('change', (e) => {
+                currentParams[paramName] = e.target.value === 'true';
+            });
         });
     });
 

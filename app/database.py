@@ -33,18 +33,47 @@ class PostgreSQLManager:
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
+                # SQL Servers table (parent table for connections)
                 cur.execute('''
-                    CREATE TABLE IF NOT EXISTS data_source_connections (
+                    CREATE TABLE IF NOT EXISTS sql_servers (
                         id SERIAL PRIMARY KEY,
                         name VARCHAR(100) UNIQUE NOT NULL,
                         server VARCHAR(255) NOT NULL,
                         port INTEGER DEFAULT 1433,
-                        database_name VARCHAR(255) NOT NULL,
                         username VARCHAR(100) NOT NULL,
                         password_encrypted TEXT NOT NULL,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
+                ''')
+
+                cur.execute('''
+                    CREATE TABLE IF NOT EXISTS data_source_connections (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) UNIQUE NOT NULL,
+                        server VARCHAR(255),
+                        port INTEGER DEFAULT 1433,
+                        database_name VARCHAR(255) NOT NULL,
+                        username VARCHAR(100),
+                        password_encrypted TEXT,
+                        sql_server_id INTEGER REFERENCES sql_servers(id) ON DELETE SET NULL,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+
+                # Add sql_server_id column if it doesn't exist (for existing databases)
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'data_source_connections' AND column_name = 'sql_server_id'
+                        ) THEN
+                            ALTER TABLE data_source_connections
+                            ADD COLUMN sql_server_id INTEGER REFERENCES sql_servers(id) ON DELETE SET NULL;
+                        END IF;
+                    END $$;
                 ''')
 
                 cur.execute('''
@@ -120,44 +149,107 @@ class PostgreSQLManager:
                 ''')
 
                 conn.commit()
+
+                # Migrate existing connections to use sql_servers
+                self._migrate_connections_to_sql_servers()
         finally:
             conn.close()
 
-    # ============== Connections ==============
-
-    def get_all_connections(self):
+    def _migrate_connections_to_sql_servers(self):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute('SELECT * FROM data_source_connections ORDER BY name')
+                # Find connections that have server/username but no sql_server_id
+                cur.execute('''
+                    SELECT DISTINCT server, port, username, password_encrypted
+                    FROM data_source_connections
+                    WHERE server IS NOT NULL
+                    AND username IS NOT NULL
+                    AND password_encrypted IS NOT NULL
+                    AND sql_server_id IS NULL
+                ''')
+                unique_servers = cur.fetchall()
+
+                for server_row in unique_servers:
+                    # Create sql_server entry
+                    server_name = f"{server_row['server']}:{server_row['port'] or 1433}"
+
+                    # Check if this server already exists
+                    cur.execute('''
+                        SELECT id FROM sql_servers
+                        WHERE server = %s AND port = %s AND username = %s
+                    ''', (server_row['server'], server_row['port'] or 1433, server_row['username']))
+                    existing = cur.fetchone()
+
+                    if existing:
+                        server_id = existing['id']
+                    else:
+                        # Create new sql_server entry
+                        cur.execute('''
+                            INSERT INTO sql_servers (name, server, port, username, password_encrypted)
+                            VALUES (%s, %s, %s, %s, %s)
+                            ON CONFLICT (name) DO UPDATE SET name = sql_servers.name
+                            RETURNING id
+                        ''', (
+                            server_name,
+                            server_row['server'],
+                            server_row['port'] or 1433,
+                            server_row['username'],
+                            server_row['password_encrypted']
+                        ))
+                        result = cur.fetchone()
+                        if result:
+                            server_id = result['id']
+                        else:
+                            cur.execute('SELECT id FROM sql_servers WHERE name = %s', (server_name,))
+                            server_id = cur.fetchone()['id']
+
+                    # Update connections to use this sql_server
+                    cur.execute('''
+                        UPDATE data_source_connections
+                        SET sql_server_id = %s
+                        WHERE server = %s AND port = %s AND username = %s
+                        AND sql_server_id IS NULL
+                    ''', (server_id, server_row['server'], server_row['port'] or 1433, server_row['username']))
+
+                conn.commit()
+        finally:
+            conn.close()
+
+    # ============== SQL Servers ==============
+
+    def get_all_sql_servers(self):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('SELECT * FROM sql_servers ORDER BY name')
                 return [dict(row) for row in cur.fetchall()]
         finally:
             conn.close()
 
-    def get_connection_by_id(self, conn_id):
+    def get_sql_server_by_id(self, server_id):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute('SELECT * FROM data_source_connections WHERE id = %s', (conn_id,))
+                cur.execute('SELECT * FROM sql_servers WHERE id = %s', (server_id,))
                 row = cur.fetchone()
                 return dict(row) if row else None
         finally:
             conn.close()
 
-    def create_connection(self, data):
+    def create_sql_server(self, data):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
                 cur.execute('''
-                    INSERT INTO data_source_connections
-                    (name, server, port, database_name, username, password_encrypted)
-                    VALUES (%s, %s, %s, %s, %s, %s)
+                    INSERT INTO sql_servers
+                    (name, server, port, username, password_encrypted)
+                    VALUES (%s, %s, %s, %s, %s)
                     RETURNING id
                 ''', (
                     data['name'],
                     data['server'],
                     data.get('port', 1433),
-                    data['database_name'],
                     data['username'],
                     self.encrypt_password(data['password'])
                 ))
@@ -166,11 +258,10 @@ class PostgreSQLManager:
         finally:
             conn.close()
 
-    def update_connection(self, conn_id, data):
+    def update_sql_server(self, server_id, data):
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                # Build update query dynamically
                 fields = []
                 values = []
 
@@ -183,9 +274,149 @@ class PostgreSQLManager:
                 if 'port' in data:
                     fields.append('port = %s')
                     values.append(data['port'])
+                if 'username' in data:
+                    fields.append('username = %s')
+                    values.append(data['username'])
+                if 'password' in data and data['password']:
+                    fields.append('password_encrypted = %s')
+                    values.append(self.encrypt_password(data['password']))
+
+                fields.append('updated_at = CURRENT_TIMESTAMP')
+                values.append(server_id)
+
+                cur.execute(f'''
+                    UPDATE sql_servers
+                    SET {', '.join(fields)}
+                    WHERE id = %s
+                ''', values)
+                conn.commit()
+        finally:
+            conn.close()
+
+    def delete_sql_server(self, server_id):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('DELETE FROM sql_servers WHERE id = %s', (server_id,))
+                conn.commit()
+        finally:
+            conn.close()
+
+    def get_databases_for_server(self, server_id):
+        server = self.get_sql_server_by_id(server_id)
+        if not server:
+            return []
+
+        try:
+            mssql = MSSQLManager(
+                server=server['server'],
+                port=server.get('port', 1433),
+                database='master',
+                username=server['username'],
+                password=self.decrypt_password(server['password_encrypted'])
+            )
+            results = mssql.execute_query('''
+                SELECT name FROM sys.databases
+                WHERE state_desc = 'ONLINE'
+                AND name NOT IN ('master', 'tempdb', 'model', 'msdb')
+                ORDER BY name
+            ''')
+            return [row['name'] for row in results]
+        except Exception:
+            return []
+
+    # ============== Connections ==============
+
+    def get_all_connections(self):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    SELECT c.*, s.name as server_name, s.server as server_address,
+                           s.port as server_port, s.username as server_username
+                    FROM data_source_connections c
+                    LEFT JOIN sql_servers s ON c.sql_server_id = s.id
+                    ORDER BY c.name
+                ''')
+                return [dict(row) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    def get_connection_by_id(self, conn_id):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    SELECT c.*, s.name as server_name, s.server as server_address,
+                           s.port as server_port, s.username as server_username,
+                           s.password_encrypted as server_password_encrypted
+                    FROM data_source_connections c
+                    LEFT JOIN sql_servers s ON c.sql_server_id = s.id
+                    WHERE c.id = %s
+                ''', (conn_id,))
+                row = cur.fetchone()
+                return dict(row) if row else None
+        finally:
+            conn.close()
+
+    def create_connection(self, data):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Support both new format (sql_server_id) and legacy format (all fields)
+                if 'sql_server_id' in data:
+                    cur.execute('''
+                        INSERT INTO data_source_connections
+                        (name, database_name, sql_server_id)
+                        VALUES (%s, %s, %s)
+                        RETURNING id
+                    ''', (
+                        data['name'],
+                        data['database_name'],
+                        data['sql_server_id']
+                    ))
+                else:
+                    cur.execute('''
+                        INSERT INTO data_source_connections
+                        (name, server, port, database_name, username, password_encrypted)
+                        VALUES (%s, %s, %s, %s, %s, %s)
+                        RETURNING id
+                    ''', (
+                        data['name'],
+                        data['server'],
+                        data.get('port', 1433),
+                        data['database_name'],
+                        data['username'],
+                        self.encrypt_password(data['password'])
+                    ))
+                conn.commit()
+                return cur.fetchone()['id']
+        finally:
+            conn.close()
+
+    def update_connection(self, conn_id, data):
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                fields = []
+                values = []
+
+                if 'name' in data:
+                    fields.append('name = %s')
+                    values.append(data['name'])
                 if 'database_name' in data:
                     fields.append('database_name = %s')
                     values.append(data['database_name'])
+                if 'sql_server_id' in data:
+                    fields.append('sql_server_id = %s')
+                    values.append(data['sql_server_id'])
+                # Legacy field support
+                if 'server' in data:
+                    fields.append('server = %s')
+                    values.append(data['server'])
+                if 'port' in data:
+                    fields.append('port = %s')
+                    values.append(data['port'])
                 if 'username' in data:
                     fields.append('username = %s')
                     values.append(data['username'])

@@ -6,33 +6,65 @@
 <div class="page-header">
     <h1 class="page-title">Data Sources</h1>
     <div class="page-actions">
-        <button class="btn btn-primary" onclick="openModal('connectionModal')">
+        <button class="btn btn-secondary" onclick="openModal('serverModal'); clearServerForm();">
+            🖥️ Add SQL Server
+        </button>
+        <button class="btn btn-primary" onclick="openModal('connectionModal'); clearConnectionForm();">
             ➕ Add Connection
         </button>
     </div>
 </div>
 
-<!-- Connections Section -->
+<!-- SQL Servers Section -->
 <div class="card mb-4">
     <div class="card-header">
-        <h2 class="card-title">SQL Server Connections</h2>
+        <h2 class="card-title">SQL Servers</h2>
     </div>
     <div class="card-body">
+        <p class="text-secondary mb-4">Configure SQL Server instances once, then reuse them when creating connections.</p>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>Name</th>
                         <th>Server</th>
-                        <th>Database</th>
+                        <th>Port</th>
                         <th>Username</th>
+                        <th>Status</th>
+                        <th>Actions</th>
+                    </tr>
+                </thead>
+                <tbody id="serversTable">
+                    <tr>
+                        <td colspan="6" class="text-center text-secondary">Loading...</td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<!-- Connections Section -->
+<div class="card mb-4">
+    <div class="card-header">
+        <h2 class="card-title">Database Connections</h2>
+    </div>
+    <div class="card-body">
+        <p class="text-secondary mb-4">Each connection links a SQL Server to a specific database.</p>
+        <div class="table-container">
+            <table>
+                <thead>
+                    <tr>
+                        <th>Name</th>
+                        <th>SQL Server</th>
+                        <th>Database</th>
                         <th>Status</th>
                         <th>Actions</th>
                     </tr>
                 </thead>
                 <tbody id="connectionsTable">
                     <tr>
-                        <td colspan="6" class="text-center text-secondary">Loading...</td>
+                        <td colspan="5" class="text-center text-secondary">Loading...</td>
                     </tr>
                 </tbody>
             </table>
@@ -46,14 +78,14 @@
         <h2 class="card-title">RDL Data Source Mappings</h2>
     </div>
     <div class="card-body">
-        <p class="text-secondary mb-4">Map RDL data source names (from your report files) to actual SQL Server connections.</p>
+        <p class="text-secondary mb-4">Map RDL data source names (from your report files) to database connections.</p>
         <div class="table-container">
             <table>
                 <thead>
                     <tr>
                         <th>RDL Data Source Name</th>
                         <th>Mapped Connection</th>
-                        <th>Actions</th>
+                        <th>Status</th>
                     </tr>
                 </thead>
                 <tbody id="mappingsTable">
@@ -69,6 +101,50 @@
     </div>
 </div>
 
+<!-- SQL Server Modal -->
+<div class="modal-overlay" id="serverModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="serverModalTitle">Add SQL Server</h3>
+            <button class="modal-close" onclick="closeModal('serverModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="serverForm">
+                <input type="hidden" id="serverId">
+                <div class="form-group">
+                    <label class="form-label">Name</label>
+                    <input type="text" class="form-input" id="serverName" required placeholder="e.g., Production Server">
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Server Address</label>
+                        <input type="text" class="form-input" id="serverAddress" required placeholder="e.g., 192.168.1.100">
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Port</label>
+                        <input type="number" class="form-input" id="serverPort" value="1433">
+                    </div>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Username</label>
+                        <input type="text" class="form-input" id="serverUsername" required>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Password</label>
+                        <input type="password" class="form-input" id="serverPassword">
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="testServerFromModal()">🔌 Test</button>
+            <button class="btn btn-secondary" onclick="closeModal('serverModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveServer()">Save</button>
+        </div>
+    </div>
+</div>
+
 <!-- Connection Modal -->
 <div class="modal-overlay" id="connectionModal">
     <div class="modal">
@@ -80,37 +156,32 @@
             <form id="connectionForm">
                 <input type="hidden" id="connId">
                 <div class="form-group">
-                    <label class="form-label">Name</label>
-                    <input type="text" class="form-input" id="connName" required placeholder="e.g., Production DB">
+                    <label class="form-label">Connection Name</label>
+                    <input type="text" class="form-input" id="connName" required placeholder="e.g., Production - MainDB">
                 </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Server</label>
-                        <input type="text" class="form-input" id="connServer" required placeholder="e.g., 192.168.1.100">
-                    </div>
-                    <div class="form-group">
-                        <label class="form-label">Port</label>
-                        <input type="number" class="form-input" id="connPort" value="1433">
-                    </div>
+                <div class="form-group">
+                    <label class="form-label">SQL Server</label>
+                    <select class="form-select" id="connServer" required onchange="loadDatabasesForServer()">
+                        <option value="">Select a SQL Server...</option>
+                    </select>
                 </div>
                 <div class="form-group">
                     <label class="form-label">Database</label>
-                    <input type="text" class="form-input" id="connDatabase" required placeholder="Database name">
-                </div>
-                <div class="form-row">
-                    <div class="form-group">
-                        <label class="form-label">Username</label>
-                        <input type="text" class="form-input" id="connUsername" required>
+                    <div class="database-input-wrapper">
+                        <select class="form-select" id="connDatabaseSelect" onchange="updateDatabaseInput()">
+                            <option value="">Loading databases...</option>
+                        </select>
+                        <input type="text" class="form-input" id="connDatabaseCustom" placeholder="Or type database name" style="display:none;">
+                        <button type="button" class="btn btn-sm btn-secondary" id="toggleDatabaseInput" onclick="toggleDatabaseInputMode()">
+                            ✏️
+                        </button>
                     </div>
-                    <div class="form-group">
-                        <label class="form-label">Password</label>
-                        <input type="password" class="form-input" id="connPassword">
-                    </div>
+                    <small class="text-secondary">Select from list or click ✏️ to enter manually</small>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="testConnection()">🔌 Test</button>
+            <button class="btn btn-secondary" onclick="testConnectionFromModal()">🔌 Test</button>
             <button class="btn btn-secondary" onclick="closeModal('connectionModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveConnection()">Save</button>
         </div>
@@ -132,7 +203,7 @@
                     <small class="text-secondary">This is the name used in your RDL report files</small>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">SQL Server Connection</label>
+                    <label class="form-label">Database Connection</label>
                     <select class="form-select" id="mappingConnection" required>
                         <option value="">Select a connection...</option>
                     </select>
@@ -145,6 +216,22 @@
         </div>
     </div>
 </div>
+
+<style>
+.database-input-wrapper {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+.database-input-wrapper .form-select,
+.database-input-wrapper .form-input {
+    flex: 1;
+}
+.database-input-wrapper .btn-sm {
+    padding: 8px 12px;
+    flex-shrink: 0;
+}
+</style>
 {% endblock %}
 
 {% block scripts %}

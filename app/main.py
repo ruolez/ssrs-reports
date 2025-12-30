@@ -667,6 +667,86 @@ def export_csv(report_id):
 
 # ============== Data Sources API ==============
 
+# SQL Servers endpoints
+@app.route('/api/datasources/servers', methods=['GET'])
+def list_sql_servers():
+    try:
+        servers = db.get_all_sql_servers()
+        for server in servers:
+            server.pop('password_encrypted', None)
+        return jsonify({'success': True, 'servers': servers})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/datasources/servers', methods=['POST'])
+def create_sql_server():
+    try:
+        data = request.json
+        required = ['name', 'server', 'username', 'password']
+        for field in required:
+            if not data.get(field):
+                return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
+
+        server_id = db.create_sql_server(data)
+        return jsonify({'success': True, 'id': server_id})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/datasources/servers/<int:server_id>', methods=['PUT'])
+def update_sql_server(server_id):
+    try:
+        data = request.json
+        db.update_sql_server(server_id, data)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/datasources/servers/<int:server_id>', methods=['DELETE'])
+def delete_sql_server(server_id):
+    try:
+        db.delete_sql_server(server_id)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/datasources/servers/<int:server_id>/test', methods=['POST'])
+def test_sql_server(server_id):
+    try:
+        server = db.get_sql_server_by_id(server_id)
+        if not server:
+            return jsonify({'success': False, 'error': 'Server not found'}), 404
+
+        mssql = MSSQLManager(
+            server=server['server'],
+            port=server.get('port', 1433),
+            database='master',
+            username=server['username'],
+            password=db.decrypt_password(server['password_encrypted'])
+        )
+
+        success, error = mssql.test_connection()
+        if success:
+            return jsonify({'success': True, 'message': 'Connection successful'})
+        else:
+            return jsonify({'success': False, 'message': f'Connection failed: {error}'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/datasources/servers/<int:server_id>/databases', methods=['GET'])
+def list_databases(server_id):
+    try:
+        databases = db.get_databases_for_server(server_id)
+        return jsonify({'success': True, 'databases': databases})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# Connection endpoints
 @app.route('/api/datasources/connections', methods=['GET'])
 def list_connections():
     try:
@@ -674,6 +754,7 @@ def list_connections():
         # Remove passwords from response
         for conn in connections:
             conn.pop('password_encrypted', None)
+            conn.pop('server_password_encrypted', None)
         return jsonify({'success': True, 'connections': connections})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
@@ -683,7 +764,13 @@ def list_connections():
 def create_connection():
     try:
         data = request.json
-        required = ['name', 'server', 'database_name', 'username', 'password']
+
+        # Support both new format (sql_server_id) and legacy format (all fields)
+        if data.get('sql_server_id'):
+            required = ['name', 'database_name', 'sql_server_id']
+        else:
+            required = ['name', 'server', 'database_name', 'username', 'password']
+
         for field in required:
             if not data.get(field):
                 return jsonify({'success': False, 'error': f'Missing required field: {field}'}), 400
@@ -720,12 +807,24 @@ def test_connection(conn_id):
         if not conn:
             return jsonify({'success': False, 'error': 'Connection not found'}), 404
 
+        # Use sql_server details if linked, otherwise use legacy fields
+        if conn.get('sql_server_id') and conn.get('server_address'):
+            server = conn['server_address']
+            port = conn.get('server_port', 1433)
+            username = conn['server_username']
+            password = db.decrypt_password(conn['server_password_encrypted'])
+        else:
+            server = conn['server']
+            port = conn.get('port', 1433)
+            username = conn['username']
+            password = db.decrypt_password(conn['password_encrypted'])
+
         mssql = MSSQLManager(
-            server=conn['server'],
-            port=conn.get('port', 1433),
+            server=server,
+            port=port,
             database=conn['database_name'],
-            username=conn['username'],
-            password=db.decrypt_password(conn['password_encrypted'])
+            username=username,
+            password=password
         )
 
         success, error = mssql.test_connection()

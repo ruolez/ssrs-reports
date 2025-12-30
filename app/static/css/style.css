@@ -1798,6 +1798,7 @@ tbody tr:last-child td {
     animation: fadeIn 0.15s ease;
 }
 
+.context-menu.visible,
 .context-menu.active {
     display: block;
 }

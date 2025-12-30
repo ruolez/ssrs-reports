@@ -57,13 +57,13 @@ function renderServers() {
             </td>
             <td>
                 <button class="btn btn-sm btn-secondary mr-2" onclick="testServerById(${server.id})">
-                    🔌 Test
+                    Test
                 </button>
                 <button class="btn btn-sm btn-secondary mr-2" onclick="editServer(${server.id})">
-                    ✏️ Edit
+                    Edit
                 </button>
                 <button class="btn btn-sm btn-danger" onclick="deleteServer(${server.id})">
-                    🗑️
+                    Delete
                 </button>
             </td>
         </tr>
@@ -238,13 +238,13 @@ function renderConnections() {
                 </td>
                 <td>
                     <button class="btn btn-sm btn-secondary mr-2" onclick="testConnectionById(${conn.id})">
-                        🔌 Test
+                        Test
                     </button>
                     <button class="btn btn-sm btn-secondary mr-2" onclick="editConnection(${conn.id})">
-                        ✏️ Edit
+                        Edit
                     </button>
                     <button class="btn btn-sm btn-danger" onclick="deleteConnection(${conn.id})">
-                        🗑️
+                        Delete
                     </button>
                 </td>
             </tr>
@@ -446,12 +446,12 @@ function setDatabaseInputMode(mode) {
     if (mode === 'select') {
         dbSelect.style.display = 'block';
         dbCustom.style.display = 'none';
-        toggleBtn.textContent = '✏️';
+        toggleBtn.textContent = '...';
         toggleBtn.title = 'Enter database name manually';
     } else {
         dbSelect.style.display = 'none';
         dbCustom.style.display = 'block';
-        toggleBtn.textContent = '📋';
+        toggleBtn.textContent = '...';
         toggleBtn.title = 'Select from list';
     }
 }

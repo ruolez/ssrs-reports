@@ -7,10 +7,10 @@
     <h1 class="page-title">Data Sources</h1>
     <div class="page-actions">
         <button class="btn btn-secondary" onclick="openModal('serverModal'); clearServerForm();">
-            🖥️ Add SQL Server
+            Add SQL Server
         </button>
         <button class="btn btn-primary" onclick="openModal('connectionModal'); clearConnectionForm();">
-            ➕ Add Connection
+            Add Connection
         </button>
     </div>
 </div>
@@ -96,7 +96,7 @@
             </table>
         </div>
         <button class="btn btn-secondary mt-4" onclick="openModal('mappingModal')">
-            ➕ Add Mapping
+            Add Mapping
         </button>
     </div>
 </div>
@@ -138,7 +138,7 @@
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="testServerFromModal()">🔌 Test</button>
+            <button class="btn btn-secondary" onclick="testServerFromModal()">Test Connection</button>
             <button class="btn btn-secondary" onclick="closeModal('serverModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveServer()">Save</button>
         </div>
@@ -172,16 +172,16 @@
                             <option value="">Loading databases...</option>
                         </select>
                         <input type="text" class="form-input" id="connDatabaseCustom" placeholder="Or type database name" style="display:none;">
-                        <button type="button" class="btn btn-sm btn-secondary" id="toggleDatabaseInput" onclick="toggleDatabaseInputMode()">
-                            ✏️
+                        <button type="button" class="btn btn-sm btn-secondary" id="toggleDatabaseInput" onclick="toggleDatabaseInputMode()" title="Toggle manual entry">
+                            ...
                         </button>
                     </div>
-                    <small class="text-secondary">Select from list or click ✏️ to enter manually</small>
+                    <small class="text-secondary">Select from list or click ... to enter manually</small>
                 </div>
             </form>
         </div>
         <div class="modal-footer">
-            <button class="btn btn-secondary" onclick="testConnectionFromModal()">🔌 Test</button>
+            <button class="btn btn-secondary" onclick="testConnectionFromModal()">Test Connection</button>
             <button class="btn btn-secondary" onclick="closeModal('connectionModal')">Cancel</button>
             <button class="btn btn-primary" onclick="saveConnection()">Save</button>
         </div>

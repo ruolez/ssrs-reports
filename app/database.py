@@ -76,6 +76,29 @@ class PostgreSQLManager:
                     END $$;
                 ''')
 
+                # Make server, username, password_encrypted nullable (for sql_server_id based connections)
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        ALTER TABLE data_source_connections ALTER COLUMN server DROP NOT NULL;
+                    EXCEPTION WHEN others THEN NULL;
+                    END $$;
+                ''')
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        ALTER TABLE data_source_connections ALTER COLUMN username DROP NOT NULL;
+                    EXCEPTION WHEN others THEN NULL;
+                    END $$;
+                ''')
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        ALTER TABLE data_source_connections ALTER COLUMN password_encrypted DROP NOT NULL;
+                    EXCEPTION WHEN others THEN NULL;
+                    END $$;
+                ''')
+
                 cur.execute('''
                     CREATE TABLE IF NOT EXISTS data_source_mappings (
                         id SERIAL PRIMARY KEY,

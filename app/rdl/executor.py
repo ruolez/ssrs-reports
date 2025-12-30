@@ -80,6 +80,8 @@ class ReportExecutor:
 
         # Build parameter dict for query
         sql_params = {}
+        multi_value_params = {}
+
         for qp in query_params:
             param_name = qp['name'].lstrip('@')
             # Extract parameter name from expression like =Parameters!Date.Value
@@ -87,9 +89,66 @@ class ReportExecutor:
             match = re.search(r'Parameters!(\w+)\.Value', param_expr)
             if match:
                 report_param_name = match.group(1)
-                sql_params[param_name] = parameters.get(report_param_name, '')
+                param_value = parameters.get(report_param_name, '')
 
-        # Convert @ParamName to %(ParamName)s format for pymssql
+                # Check if this is a multi-value parameter (array)
+                if isinstance(param_value, list):
+                    multi_value_params[param_name] = param_value
+                else:
+                    sql_params[param_name] = param_value
+
+        # Handle multi-value parameters by expanding them inline
+        # Replace IN (@ParamName) with IN (val1, val2, val3)
+        for param_name, values in multi_value_params.items():
+            if values:
+                # Escape and quote values for SQL
+                escaped_values = []
+                for v in values:
+                    if isinstance(v, (int, float)):
+                        escaped_values.append(str(v))
+                    elif v is not None:
+                        # Try to convert string numbers to int for IN clause
+                        try:
+                            escaped_values.append(str(int(v)))
+                        except (ValueError, TypeError):
+                            # String value - escape single quotes
+                            escaped = str(v).replace("'", "''")
+                            escaped_values.append(f"'{escaped}'")
+
+                values_str = ', '.join(escaped_values)
+
+                # Replace IN (@ParamName) or IN(@ParamName) patterns
+                query = re.sub(
+                    r'IN\s*\(\s*@' + param_name + r'\s*\)',
+                    f'IN ({values_str})',
+                    query,
+                    flags=re.IGNORECASE
+                )
+
+                # Also replace standalone @ParamName if not in IN clause
+                # This handles other uses of multi-value params
+                query = re.sub(
+                    r'@' + param_name + r'\b',
+                    f'({values_str})',
+                    query,
+                    flags=re.IGNORECASE
+                )
+            else:
+                # No values selected - use impossible condition to return no rows
+                query = re.sub(
+                    r'IN\s*\(\s*@' + param_name + r'\s*\)',
+                    'IN (NULL)',
+                    query,
+                    flags=re.IGNORECASE
+                )
+                query = re.sub(
+                    r'@' + param_name + r'\b',
+                    'NULL',
+                    query,
+                    flags=re.IGNORECASE
+                )
+
+        # Convert @ParamName to %(ParamName)s format for pymssql (single-value params only)
         if sql_params:
             for param_name in sql_params.keys():
                 query = re.sub(

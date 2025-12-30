@@ -165,11 +165,46 @@ class RdlParser:
             if default_elem is not None:
                 default_value = default_elem.text
 
+            multi_value_elem = param.find('r:MultiValue', NAMESPACES)
+            multi_value = multi_value_elem is not None and multi_value_elem.text == 'true'
+
+            valid_values = None
+            valid_values_elem = param.find('r:ValidValues', NAMESPACES)
+            if valid_values_elem is not None:
+                dataset_ref = valid_values_elem.find('r:DataSetReference', NAMESPACES)
+                if dataset_ref is not None:
+                    dataset_name_elem = dataset_ref.find('r:DataSetName', NAMESPACES)
+                    value_field_elem = dataset_ref.find('r:ValueField', NAMESPACES)
+                    label_field_elem = dataset_ref.find('r:LabelField', NAMESPACES)
+                    valid_values = {
+                        'type': 'dataset',
+                        'dataset_name': dataset_name_elem.text if dataset_name_elem is not None else '',
+                        'value_field': value_field_elem.text if value_field_elem is not None else '',
+                        'label_field': label_field_elem.text if label_field_elem is not None else ''
+                    }
+                else:
+                    static_values = valid_values_elem.find('r:ParameterValues', NAMESPACES)
+                    if static_values is not None:
+                        values_list = []
+                        for pv in static_values.findall('r:ParameterValue', NAMESPACES):
+                            value_elem = pv.find('r:Value', NAMESPACES)
+                            label_elem = pv.find('r:Label', NAMESPACES)
+                            values_list.append({
+                                'value': value_elem.text if value_elem is not None else '',
+                                'label': label_elem.text if label_elem is not None else (value_elem.text if value_elem is not None else '')
+                            })
+                        valid_values = {
+                            'type': 'static',
+                            'values': values_list
+                        }
+
             parameters.append({
                 'name': name,
                 'data_type': data_type,
                 'prompt': prompt,
-                'default_value': default_value
+                'default_value': default_value,
+                'multi_value': multi_value,
+                'valid_values': valid_values
             })
 
         return parameters

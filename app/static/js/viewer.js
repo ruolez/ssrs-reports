@@ -831,7 +831,7 @@ async function loadReport() {
         const parameters = typeof reportData.parameters === 'string'
             ? JSON.parse(reportData.parameters || '[]')
             : (reportData.parameters || []);
-        renderParameterForm(parameters);
+        await renderParameterForm(parameters);
 
         // Update parameters button state based on whether there are parameters
         const paramsBtn = document.getElementById('toggleParamsBtn');
@@ -868,7 +868,7 @@ async function loadReport() {
     }
 }
 
-function renderParameterForm(parameters) {
+async function renderParameterForm(parameters) {
     const container = document.getElementById('parameterForm');
 
     if (parameters.length === 0) {
@@ -879,25 +879,108 @@ function renderParameterForm(parameters) {
     container.classList.remove('hidden');
 
     let html = '';
-    parameters.forEach(param => {
+
+    for (const param of parameters) {
         const inputType = param.data_type === 'DateTime' ? 'date' : 'text';
-        // Use URL param if available (from drillthrough), otherwise use default
         const value = currentParams[param.name] !== undefined
             ? currentParams[param.name]
             : (param.default_value || '');
-        currentParams[param.name] = value;
 
-        html += `
-            <div class="param-group">
-                <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
-                <input type="${inputType}"
-                       class="param-input"
-                       name="${param.name}"
-                       value="${escapeHtml(value)}"
-                       placeholder="${escapeHtml(param.prompt || param.name)}">
-            </div>
-        `;
-    });
+        if (param.valid_values && param.valid_values.type === 'dataset') {
+            // Fetch options from dataset
+            const options = await fetchParameterOptions(param);
+
+            if (param.multi_value) {
+                // Multi-select checkboxes
+                currentParams[param.name] = Array.isArray(value) ? value : [];
+                html += `
+                    <div class="param-group param-group-multiselect">
+                        <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                        <div class="param-checkbox-group" data-param="${param.name}">
+                            ${options.map(opt => `
+                                <label class="param-checkbox-label">
+                                    <input type="checkbox"
+                                           class="param-checkbox"
+                                           name="${param.name}"
+                                           value="${escapeHtml(String(opt.value))}"
+                                           ${currentParams[param.name].includes(opt.value) || currentParams[param.name].includes(String(opt.value)) ? 'checked' : ''}>
+                                    <span>${escapeHtml(opt.label)}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                // Single-select dropdown
+                currentParams[param.name] = value;
+                html += `
+                    <div class="param-group">
+                        <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                        <select class="param-input param-select" name="${param.name}">
+                            <option value="">-- Select --</option>
+                            ${options.map(opt => `
+                                <option value="${escapeHtml(String(opt.value))}" ${String(value) === String(opt.value) ? 'selected' : ''}>
+                                    ${escapeHtml(opt.label)}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+        } else if (param.valid_values && param.valid_values.type === 'static') {
+            // Static values
+            const options = param.valid_values.values || [];
+
+            if (param.multi_value) {
+                currentParams[param.name] = Array.isArray(value) ? value : [];
+                html += `
+                    <div class="param-group param-group-multiselect">
+                        <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                        <div class="param-checkbox-group" data-param="${param.name}">
+                            ${options.map(opt => `
+                                <label class="param-checkbox-label">
+                                    <input type="checkbox"
+                                           class="param-checkbox"
+                                           name="${param.name}"
+                                           value="${escapeHtml(opt.value)}"
+                                           ${currentParams[param.name].includes(opt.value) ? 'checked' : ''}>
+                                    <span>${escapeHtml(opt.label)}</span>
+                                </label>
+                            `).join('')}
+                        </div>
+                    </div>
+                `;
+            } else {
+                currentParams[param.name] = value;
+                html += `
+                    <div class="param-group">
+                        <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                        <select class="param-input param-select" name="${param.name}">
+                            <option value="">-- Select --</option>
+                            ${options.map(opt => `
+                                <option value="${escapeHtml(opt.value)}" ${value === opt.value ? 'selected' : ''}>
+                                    ${escapeHtml(opt.label)}
+                                </option>
+                            `).join('')}
+                        </select>
+                    </div>
+                `;
+            }
+        } else {
+            // Regular text/date input
+            currentParams[param.name] = value;
+            html += `
+                <div class="param-group">
+                    <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
+                    <input type="${inputType}"
+                           class="param-input"
+                           name="${param.name}"
+                           value="${escapeHtml(value)}"
+                           placeholder="${escapeHtml(param.prompt || param.name)}">
+                </div>
+            `;
+        }
+    }
 
     html += `
         <div class="param-group">
@@ -910,7 +993,7 @@ function renderParameterForm(parameters) {
 
     container.innerHTML = html;
 
-    // Add input listeners
+    // Add input listeners for text/select inputs
     container.querySelectorAll('.param-input').forEach(input => {
         input.addEventListener('change', (e) => {
             currentParams[e.target.name] = e.target.value;
@@ -922,9 +1005,38 @@ function renderParameterForm(parameters) {
         });
     });
 
+    // Add listeners for checkbox groups
+    container.querySelectorAll('.param-checkbox-group').forEach(group => {
+        const paramName = group.dataset.param;
+        group.querySelectorAll('.param-checkbox').forEach(checkbox => {
+            checkbox.addEventListener('change', () => {
+                const checked = group.querySelectorAll('.param-checkbox:checked');
+                currentParams[paramName] = Array.from(checked).map(cb => cb.value);
+            });
+        });
+    });
+
     // Initialize icons
     if (typeof lucide !== 'undefined') {
         lucide.createIcons();
+    }
+}
+
+async function fetchParameterOptions(param) {
+    if (!param.valid_values || param.valid_values.type !== 'dataset') {
+        return [];
+    }
+
+    try {
+        const data = await apiPost(`/api/reports/${REPORT_ID}/parameter-options`, {
+            dataset_name: param.valid_values.dataset_name,
+            value_field: param.valid_values.value_field,
+            label_field: param.valid_values.label_field
+        });
+        return data.options || [];
+    } catch (error) {
+        console.error('Failed to fetch parameter options:', error);
+        return [];
     }
 }
 

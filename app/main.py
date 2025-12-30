@@ -274,6 +274,81 @@ def execute_report(report_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/reports/<int:report_id>/parameter-options', methods=['POST'])
+def get_parameter_options(report_id):
+    """Execute parameter dataset to get valid values for dropdowns/checkboxes"""
+    try:
+        report = db.get_report_by_id(report_id)
+        if not report:
+            return jsonify({'success': False, 'error': 'Report not found'}), 404
+
+        data = request.json
+        dataset_name = data.get('dataset_name')
+        value_field = data.get('value_field')
+        label_field = data.get('label_field')
+
+        if not dataset_name:
+            return jsonify({'success': False, 'error': 'dataset_name is required'}), 400
+
+        # Parse RDL
+        file_path = os.path.join(REPORTS_DIR, report['file_path'])
+        parser = RdlParser(file_path)
+        report_def = parser.parse()
+
+        # Find the dataset
+        dataset = None
+        for ds in report_def.get('datasets', []):
+            if ds['name'] == dataset_name:
+                dataset = ds
+                break
+
+        if not dataset:
+            return jsonify({'success': False, 'error': f'Dataset {dataset_name} not found'}), 404
+
+        # Get mappings and connections
+        mappings = db.get_all_mappings()
+        connections = db.get_all_connections()
+
+        # Find the connection for this dataset's datasource
+        datasource_name = dataset.get('datasource_name')
+        connection = None
+        for mapping in mappings:
+            if mapping['rdl_datasource_name'] == datasource_name and mapping.get('connection_id'):
+                for conn in connections:
+                    if conn['id'] == mapping['connection_id']:
+                        connection = conn
+                        break
+                break
+
+        if not connection:
+            return jsonify({'success': False, 'error': f'No mapping for datasource {datasource_name}'}), 400
+
+        # Execute the dataset query
+        mssql = MSSQLManager(
+            server=connection['server'],
+            port=connection.get('port', 1433),
+            database=connection['database_name'],
+            username=connection['username'],
+            password=db.decrypt_password(connection['password_encrypted'])
+        )
+
+        query = dataset.get('query', '')
+        rows = mssql.execute_query(query, {})
+
+        # Extract value and label fields
+        options = []
+        for row in rows:
+            value = row.get(value_field, '')
+            label = row.get(label_field, value)
+            options.append({'value': value, 'label': label})
+
+        return jsonify({'success': True, 'options': options})
+    except Exception as e:
+        import traceback
+        traceback.print_exc()
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/reports/<int:report_id>/export/excel', methods=['POST'])
 def export_excel(report_id):
     try:

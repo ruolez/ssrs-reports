@@ -448,6 +448,16 @@ def get_folder_reports(folder_id):
         return jsonify({'success': False, 'error': str(e)}), 500
 
 
+@app.route('/api/reports/uncategorized', methods=['GET'])
+def get_uncategorized_reports():
+    """Get reports with no folder assigned"""
+    try:
+        reports = db.get_reports_by_folder(None)
+        return jsonify({'success': True, 'reports': reports})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
 @app.route('/api/folders/reorder', methods=['POST'])
 def reorder_folders():
     try:

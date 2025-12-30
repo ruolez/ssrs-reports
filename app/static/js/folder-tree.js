@@ -86,13 +86,9 @@ function renderFolderTree() {
 
     let html = `
         <ul class="folder-tree">
-            <li class="folder-item">
+            <li class="folder-item" data-folder-id="all">
                 <div class="folder-item-content ${selectedFolderId === null ? 'active' : ''}"
-                     onclick="selectFolder(null)"
-                     data-folder-id="null"
-                     ondragover="handleFolderDragOver(event)"
-                     ondragleave="handleFolderDragLeave(event)"
-                     ondrop="handleFolderDrop(event, null)">
+                     onclick="selectFolder(null)">
                     <span class="folder-toggle no-children"></span>
                     <i data-lucide="home" class="folder-icon" style="color: var(--primary)"></i>
                     <span class="folder-name">All Reports</span>
@@ -101,13 +97,9 @@ function renderFolderTree() {
             </li>
             ${renderFolderItems(folderTree)}
             <li class="folder-tree-divider"></li>
-            <li class="folder-item">
+            <li class="folder-item" data-folder-id="uncategorized">
                 <div class="folder-item-content ${selectedFolderId === 'uncategorized' ? 'active' : ''}"
-                     onclick="selectFolder('uncategorized')"
-                     data-folder-id="uncategorized"
-                     ondragover="handleFolderDragOver(event)"
-                     ondragleave="handleFolderDragLeave(event)"
-                     ondrop="handleFolderDrop(event, null)">
+                     onclick="selectUncategorized()">
                     <span class="folder-toggle no-children"></span>
                     <i data-lucide="inbox" class="folder-icon" style="color: var(--on-surface-secondary)"></i>
                     <span class="folder-name">Uncategorized</span>
@@ -129,17 +121,11 @@ function renderFolderItems(folders, depth = 0) {
         const totalCount = countReportsRecursive(folder);
 
         return `
-            <li class="folder-item" data-folder-id="${folder.id}">
+            <li class="folder-item" data-folder-id="${folder.id}" draggable="true">
                 <div class="folder-item-content ${selectedFolderId === folder.id ? 'active' : ''}"
                      onclick="selectFolder(${folder.id})"
                      oncontextmenu="showFolderContextMenu(event, ${folder.id})"
-                     ondblclick="startInlineRename(${folder.id})"
-                     ondragover="handleFolderDragOver(event)"
-                     ondragleave="handleFolderDragLeave(event)"
-                     ondrop="handleFolderDrop(event, ${folder.id})"
-                     draggable="true"
-                     ondragstart="handleFolderDragStart(event, ${folder.id})"
-                     ondragend="handleDragEnd(event)">
+                     ondblclick="startInlineRename(${folder.id})">
                     <span class="folder-toggle ${hasChildren ? (isExpanded ? 'expanded' : '') : 'no-children'}"
                           onclick="event.stopPropagation(); toggleFolder(${folder.id})">
                         <i data-lucide="chevron-right"></i>
@@ -173,6 +159,21 @@ function selectFolder(folderId) {
 
     updateBreadcrumb(folderId);
     updatePageTitle(folderId);
+}
+
+// Select uncategorized folder (special case)
+function selectUncategorized() {
+    selectedFolderId = 'uncategorized';
+    window.currentFolderId = 'uncategorized';
+    renderFolderTree();
+
+    // Load uncategorized reports (function from reports.js)
+    if (typeof loadReports === 'function') {
+        loadReports();
+    }
+
+    updateBreadcrumb('uncategorized');
+    updatePageTitle('uncategorized');
 }
 
 // Toggle folder expand/collapse
@@ -383,7 +384,9 @@ async function saveFolder() {
 
         // Refresh reports if viewing affected folder
         if (selectedFolderId === editingFolderId || selectedFolderId === data.parent_id) {
-            await loadReportsForFolder(selectedFolderId);
+            if (typeof loadReports === 'function') {
+                loadReports();
+            }
         }
     } catch (error) {
         showToast('Failed to save folder: ' + error.message, 'error');
@@ -464,7 +467,9 @@ async function confirmDeleteFolder() {
         if (selectedFolderId === deleteFolderId) {
             selectFolder(null);
         } else {
-            await loadReportsForFolder(selectedFolderId);
+            if (typeof loadReports === 'function') {
+                loadReports();
+            }
         }
     } catch (error) {
         showToast('Failed to delete folder: ' + error.message, 'error');

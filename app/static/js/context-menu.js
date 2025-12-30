@@ -128,7 +128,7 @@ function handleContextMenuAction(action) {
             break;
 
         case 'delete':
-            confirmDeleteFolder(folderId);
+            promptDeleteFolder(folderId);
             break;
     }
 }
@@ -272,26 +272,12 @@ function confirmDeleteReport(reportId, reportName) {
     openModal('deleteModal');
 }
 
-// Confirm delete folder
-function confirmDeleteFolder(folderId) {
-    const folder = findFolderById(folderId);
-    if (!folder) return;
-
-    window.deleteTargetFolderId = folderId;
-
-    const nameSpan = document.getElementById('deleteFolderName');
-    if (nameSpan) {
-        nameSpan.textContent = folder.name;
-    }
-
-    openModal('deleteFolderModal');
-}
-
 // Find folder by ID in the tree
 function findFolderById(folderId) {
-    if (!window.foldersData) return null;
+    // Use flatFolders from folder-tree.js if available
+    const folders = window.foldersData || (typeof flatFolders !== 'undefined' ? flatFolders : []);
 
-    for (const folder of window.foldersData) {
+    for (const folder of folders) {
         if (folder.id === folderId) {
             return folder;
         }
@@ -338,41 +324,6 @@ function openNewSubfolderModal(parentId) {
     openModal('folderModal');
 }
 
-// Confirm delete folder action
-async function confirmDeleteFolderAction() {
-    const folderId = window.deleteTargetFolderId;
-    if (!folderId) return;
-
-    try {
-        const response = await fetch(`/api/folders/${folderId}`, {
-            method: 'DELETE'
-        });
-
-        if (!response.ok) {
-            const data = await response.json();
-            throw new Error(data.error || 'Failed to delete folder');
-        }
-
-        closeModal('deleteFolderModal');
-        showToast('Folder deleted successfully', 'success');
-
-        // Clear current folder if it was deleted
-        if (window.currentFolderId === folderId) {
-            window.currentFolderId = null;
-            updateBreadcrumb(null);
-            document.getElementById('pageTitle').textContent = 'All Reports';
-        }
-
-        // Reload folder tree and reports
-        await loadFolderTree();
-        await loadReports();
-
-    } catch (error) {
-        showToast(error.message, 'error');
-    }
-
-    window.deleteTargetFolderId = null;
-}
 
 // Populate folder select list for move modal
 function populateFolderSelectList() {

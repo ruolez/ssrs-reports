@@ -15,7 +15,9 @@ async function loadReports() {
 
         // Build URL with folder filter
         let url = '/api/reports';
-        if (window.currentFolderId !== null) {
+        if (window.currentFolderId === 'uncategorized') {
+            url = '/api/reports/uncategorized';
+        } else if (window.currentFolderId !== null) {
             url = `/api/folders/${window.currentFolderId}/reports`;
         }
 

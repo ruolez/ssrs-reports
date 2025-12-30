@@ -904,6 +904,10 @@ async function renderParameterForm(parameters) {
                                 <i data-lucide="chevron-down"></i>
                             </div>
                             <div class="param-multiselect-dropdown">
+                                <div class="param-multiselect-actions">
+                                    <button type="button" class="param-select-all">Select All</button>
+                                    <button type="button" class="param-unselect-all">Unselect All</button>
+                                </div>
                                 ${options.map(opt => `
                                     <label class="param-checkbox-label">
                                         <input type="checkbox"
@@ -952,6 +956,10 @@ async function renderParameterForm(parameters) {
                                 <i data-lucide="chevron-down"></i>
                             </div>
                             <div class="param-multiselect-dropdown">
+                                <div class="param-multiselect-actions">
+                                    <button type="button" class="param-select-all">Select All</button>
+                                    <button type="button" class="param-unselect-all">Unselect All</button>
+                                </div>
                                 ${options.map(opt => `
                                     <label class="param-checkbox-label">
                                         <input type="checkbox"
@@ -1027,6 +1035,15 @@ async function renderParameterForm(parameters) {
         const trigger = wrapper.querySelector('.param-multiselect-trigger');
         const dropdown = wrapper.querySelector('.param-multiselect-dropdown');
         const displayText = trigger.querySelector('.param-multiselect-text');
+        const checkboxes = wrapper.querySelectorAll('.param-checkbox');
+
+        // Helper to update display and state
+        const updateSelection = () => {
+            const checked = wrapper.querySelectorAll('.param-checkbox:checked');
+            currentParams[paramName] = Array.from(checked).map(cb => cb.value);
+            const count = currentParams[paramName].length;
+            displayText.textContent = count === 0 ? 'Select...' : `${count} selected`;
+        };
 
         // Toggle dropdown on click
         trigger.addEventListener('click', (e) => {
@@ -1042,14 +1059,29 @@ async function renderParameterForm(parameters) {
             dropdown.classList.toggle('open');
         });
 
-        // Handle checkbox changes
-        wrapper.querySelectorAll('.param-checkbox').forEach(checkbox => {
-            checkbox.addEventListener('change', () => {
-                const checked = wrapper.querySelectorAll('.param-checkbox:checked');
-                currentParams[paramName] = Array.from(checked).map(cb => cb.value);
-                const count = currentParams[paramName].length;
-                displayText.textContent = count === 0 ? 'Select...' : `${count} selected`;
+        // Select All button
+        const selectAllBtn = wrapper.querySelector('.param-select-all');
+        if (selectAllBtn) {
+            selectAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                checkboxes.forEach(cb => cb.checked = true);
+                updateSelection();
             });
+        }
+
+        // Unselect All button
+        const unselectAllBtn = wrapper.querySelector('.param-unselect-all');
+        if (unselectAllBtn) {
+            unselectAllBtn.addEventListener('click', (e) => {
+                e.stopPropagation();
+                checkboxes.forEach(cb => cb.checked = false);
+                updateSelection();
+            });
+        }
+
+        // Handle checkbox changes
+        checkboxes.forEach(checkbox => {
+            checkbox.addEventListener('change', updateSelection);
         });
     });
 

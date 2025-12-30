@@ -113,16 +113,25 @@ a:hover {
     cursor: pointer;
     padding: 8px;
     border-radius: 8px;
-    font-size: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     transition: background-color 0.2s;
+    color: var(--on-surface-secondary);
 }
 
 .theme-toggle:hover {
     background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+.theme-toggle svg {
+    width: 20px;
+    height: 20px;
 }
 
 [data-theme="dark"] .theme-icon-dark {
-    display: inline;
+    display: flex;
 }
 
 [data-theme="dark"] .theme-icon-light {
@@ -136,7 +145,7 @@ a:hover {
 
 [data-theme="light"] .theme-icon-light,
 :root:not([data-theme="dark"]) .theme-icon-light {
-    display: inline;
+    display: flex;
 }
 
 /* ============== Container ============== */
@@ -603,33 +612,87 @@ tbody tr:last-child td {
 }
 
 .param-group-multiselect {
-    min-width: 250px;
+    min-width: 200px;
+    position: relative;
 }
 
-.param-checkbox-group {
+.param-multiselect-trigger {
     display: flex;
-    flex-direction: column;
-    gap: 6px;
-    max-height: 200px;
-    overflow-y: auto;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
     padding: 8px 12px;
     border: 1px solid var(--outline);
     border-radius: 6px;
     background-color: var(--surface);
+    color: var(--on-surface);
+    cursor: pointer;
+    font-size: 0.9375rem;
+    min-width: 180px;
+    transition: border-color 0.2s;
+}
+
+.param-multiselect-trigger:hover {
+    border-color: var(--primary);
+}
+
+.param-multiselect-trigger.open {
+    border-color: var(--primary);
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+}
+
+.param-multiselect-trigger svg {
+    width: 16px;
+    height: 16px;
+    color: var(--on-surface-secondary);
+    transition: transform 0.2s;
+}
+
+.param-multiselect-trigger.open svg {
+    transform: rotate(180deg);
+}
+
+.param-multiselect-text {
+    flex: 1;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.param-multiselect-dropdown {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background-color: var(--surface);
+    border: 1px solid var(--primary);
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+.param-multiselect-dropdown.open {
+    display: block;
 }
 
 .param-checkbox-label {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     cursor: pointer;
     font-size: 0.875rem;
     color: var(--on-surface);
-    padding: 4px 0;
+    padding: 10px 12px;
+    transition: background-color 0.15s;
 }
 
 .param-checkbox-label:hover {
-    color: var(--primary);
+    background-color: var(--primary-light);
 }
 
 .param-checkbox {
@@ -637,13 +700,11 @@ tbody tr:last-child td {
     height: 16px;
     cursor: pointer;
     accent-color: var(--primary);
+    flex-shrink: 0;
 }
 
 .param-checkbox-label span {
     flex: 1;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
 }
 
 /* ============== Modal ============== */

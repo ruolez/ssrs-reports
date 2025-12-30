@@ -891,22 +891,30 @@ async function renderParameterForm(parameters) {
             const options = await fetchParameterOptions(param);
 
             if (param.multi_value) {
-                // Multi-select checkboxes
+                // Multi-select dropdown with checkboxes
                 currentParams[param.name] = Array.isArray(value) ? value : [];
+                const selectedCount = currentParams[param.name].length;
+                const displayText = selectedCount === 0 ? 'Select...' : `${selectedCount} selected`;
                 html += `
                     <div class="param-group param-group-multiselect">
                         <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
-                        <div class="param-checkbox-group" data-param="${param.name}">
-                            ${options.map(opt => `
-                                <label class="param-checkbox-label">
-                                    <input type="checkbox"
-                                           class="param-checkbox"
-                                           name="${param.name}"
-                                           value="${escapeHtml(String(opt.value))}"
-                                           ${currentParams[param.name].includes(opt.value) || currentParams[param.name].includes(String(opt.value)) ? 'checked' : ''}>
-                                    <span>${escapeHtml(opt.label)}</span>
-                                </label>
-                            `).join('')}
+                        <div class="param-multiselect-wrapper" data-param="${param.name}">
+                            <div class="param-multiselect-trigger" tabindex="0">
+                                <span class="param-multiselect-text">${displayText}</span>
+                                <i data-lucide="chevron-down"></i>
+                            </div>
+                            <div class="param-multiselect-dropdown">
+                                ${options.map(opt => `
+                                    <label class="param-checkbox-label">
+                                        <input type="checkbox"
+                                               class="param-checkbox"
+                                               name="${param.name}"
+                                               value="${escapeHtml(String(opt.value))}"
+                                               ${currentParams[param.name].includes(opt.value) || currentParams[param.name].includes(String(opt.value)) ? 'checked' : ''}>
+                                        <span>${escapeHtml(opt.label)}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -933,20 +941,28 @@ async function renderParameterForm(parameters) {
 
             if (param.multi_value) {
                 currentParams[param.name] = Array.isArray(value) ? value : [];
+                const selectedCount = currentParams[param.name].length;
+                const displayText = selectedCount === 0 ? 'Select...' : `${selectedCount} selected`;
                 html += `
                     <div class="param-group param-group-multiselect">
                         <label class="param-label">${escapeHtml(param.prompt || param.name)}</label>
-                        <div class="param-checkbox-group" data-param="${param.name}">
-                            ${options.map(opt => `
-                                <label class="param-checkbox-label">
-                                    <input type="checkbox"
-                                           class="param-checkbox"
-                                           name="${param.name}"
-                                           value="${escapeHtml(opt.value)}"
-                                           ${currentParams[param.name].includes(opt.value) ? 'checked' : ''}>
-                                    <span>${escapeHtml(opt.label)}</span>
-                                </label>
-                            `).join('')}
+                        <div class="param-multiselect-wrapper" data-param="${param.name}">
+                            <div class="param-multiselect-trigger" tabindex="0">
+                                <span class="param-multiselect-text">${displayText}</span>
+                                <i data-lucide="chevron-down"></i>
+                            </div>
+                            <div class="param-multiselect-dropdown">
+                                ${options.map(opt => `
+                                    <label class="param-checkbox-label">
+                                        <input type="checkbox"
+                                               class="param-checkbox"
+                                               name="${param.name}"
+                                               value="${escapeHtml(opt.value)}"
+                                               ${currentParams[param.name].includes(opt.value) ? 'checked' : ''}>
+                                        <span>${escapeHtml(opt.label)}</span>
+                                    </label>
+                                `).join('')}
+                            </div>
                         </div>
                     </div>
                 `;
@@ -1005,15 +1021,46 @@ async function renderParameterForm(parameters) {
         });
     });
 
-    // Add listeners for checkbox groups
-    container.querySelectorAll('.param-checkbox-group').forEach(group => {
-        const paramName = group.dataset.param;
-        group.querySelectorAll('.param-checkbox').forEach(checkbox => {
+    // Add listeners for multi-select dropdowns
+    container.querySelectorAll('.param-multiselect-wrapper').forEach(wrapper => {
+        const paramName = wrapper.dataset.param;
+        const trigger = wrapper.querySelector('.param-multiselect-trigger');
+        const dropdown = wrapper.querySelector('.param-multiselect-dropdown');
+        const displayText = trigger.querySelector('.param-multiselect-text');
+
+        // Toggle dropdown on click
+        trigger.addEventListener('click', (e) => {
+            e.stopPropagation();
+            // Close other dropdowns
+            container.querySelectorAll('.param-multiselect-trigger.open').forEach(t => {
+                if (t !== trigger) {
+                    t.classList.remove('open');
+                    t.nextElementSibling.classList.remove('open');
+                }
+            });
+            trigger.classList.toggle('open');
+            dropdown.classList.toggle('open');
+        });
+
+        // Handle checkbox changes
+        wrapper.querySelectorAll('.param-checkbox').forEach(checkbox => {
             checkbox.addEventListener('change', () => {
-                const checked = group.querySelectorAll('.param-checkbox:checked');
+                const checked = wrapper.querySelectorAll('.param-checkbox:checked');
                 currentParams[paramName] = Array.from(checked).map(cb => cb.value);
+                const count = currentParams[paramName].length;
+                displayText.textContent = count === 0 ? 'Select...' : `${count} selected`;
             });
         });
+    });
+
+    // Close dropdowns when clicking outside
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.param-multiselect-wrapper')) {
+            container.querySelectorAll('.param-multiselect-trigger.open').forEach(trigger => {
+                trigger.classList.remove('open');
+                trigger.nextElementSibling.classList.remove('open');
+            });
+        }
     });
 
     // Initialize icons

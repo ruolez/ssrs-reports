@@ -457,7 +457,15 @@ function setDatabaseInputMode(mode) {
 }
 
 function updateDatabaseInput() {
-    // This could auto-fill the custom input when selecting from dropdown
+    // Auto-populate connection name with database name if name is empty
+    const dbSelect = document.getElementById('connDatabaseSelect');
+    const connName = document.getElementById('connName');
+    const connId = document.getElementById('connId').value;
+
+    // Only auto-populate for new connections (not editing) and if name is empty
+    if (!connId && !connName.value && dbSelect.value) {
+        connName.value = dbSelect.value;
+    }
 }
 
 function updateConnectionDropdown() {

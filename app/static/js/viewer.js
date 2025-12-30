@@ -328,6 +328,7 @@ class ColumnFilters {
 
         const rows = tbody.querySelectorAll('tr:not(.filter-row)');
         let visibleCount = 0;
+        const totalCount = rows.length;
 
         rows.forEach(row => {
             const cells = row.querySelectorAll('td');
@@ -348,10 +349,13 @@ class ColumnFilters {
             if (visible) visibleCount++;
         });
 
-        // Update status
-        const filteredCount = rows.length - visibleCount;
-        document.getElementById('statusFilteredCount').textContent = filteredCount;
-        document.getElementById('statusFiltered').style.display = filteredCount > 0 ? 'inline' : 'none';
+        // Update status bar with filtering info
+        const statusRowInfo = document.getElementById('statusRowInfo');
+        if (visibleCount < totalCount) {
+            statusRowInfo.innerHTML = `Showing <strong>${visibleCount.toLocaleString()}</strong> of <strong>${totalCount.toLocaleString()}</strong> rows`;
+        } else {
+            statusRowInfo.innerHTML = `Showing <strong>${totalCount.toLocaleString()}</strong> rows`;
+        }
     }
 
     updateBadge() {
@@ -817,8 +821,7 @@ async function loadReport() {
         datasourceStatus = data.datasource_status || [];
         availableConnections = data.connections || [];
 
-        // Update title
-        document.getElementById('reportTitle').textContent = reportData.display_name;
+        // Update page title
         document.title = `${reportData.display_name} - RDL Report Viewer`;
 
         // Render data source panel
@@ -1028,19 +1031,9 @@ function initializeTableFeatures() {
 }
 
 function updateMetadata(rowCount, execTime) {
-    // Update header badges
-    document.querySelector('#metaRowCount .meta-badge-value').textContent = rowCount.toLocaleString();
-    document.querySelector('#metaExecTime .meta-badge-value').textContent = execTime < 1000
-        ? `${Math.round(execTime)}ms`
-        : `${(execTime / 1000).toFixed(2)}s`;
-
-    const now = new Date();
-    const timeStr = now.toLocaleTimeString();
-    document.querySelector('#metaTimestamp .meta-badge-value').textContent = timeStr;
-
     // Update status bar
-    document.getElementById('statusRowCount').textContent = rowCount.toLocaleString();
-    document.getElementById('statusTimestamp').textContent = timeStr;
+    const statusRowInfo = document.getElementById('statusRowInfo');
+    statusRowInfo.innerHTML = `Showing <strong>${rowCount.toLocaleString()}</strong> rows`;
 }
 
 // ============== Drillthrough ==============

@@ -1,7 +1,29 @@
 import re
+from datetime import datetime
 from typing import Dict, List, Any, Optional
 from ..database import MSSQLManager
 from .expression import parse_lookup_expression, is_lookup_expression
+
+
+def convert_date_param(value: str) -> Any:
+    """Convert date string to datetime object for SQL Server."""
+    if not value or not isinstance(value, str):
+        return value
+
+    # Try YYYY-MM-DD format (HTML date input)
+    try:
+        return datetime.strptime(value, '%Y-%m-%d')
+    except ValueError:
+        pass
+
+    # Try other common formats
+    for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d']:
+        try:
+            return datetime.strptime(value, fmt)
+        except ValueError:
+            continue
+
+    return value
 
 
 class ReportExecutor:
@@ -95,6 +117,8 @@ class ReportExecutor:
                 if isinstance(param_value, list):
                     multi_value_params[param_name] = param_value
                 else:
+                    # Try to convert date strings to datetime objects
+                    param_value = convert_date_param(param_value)
                     sql_params[param_name] = param_value
 
         # Handle multi-value parameters by expanding them inline

@@ -6,22 +6,35 @@ from .expression import parse_lookup_expression, is_lookup_expression
 
 
 def convert_date_param(value: str) -> Any:
-    """Convert date string to datetime object for SQL Server."""
+    """Convert date string to SQL Server compatible format.
+
+    Returns date in 'YYYYMMDD' format which is language-independent
+    and universally accepted by SQL Server regardless of locale settings.
+    """
     if not value or not isinstance(value, str):
         return value
 
+    # Try to parse and convert to SQL Server friendly format
+    parsed_date = None
+
     # Try YYYY-MM-DD format (HTML date input)
     try:
-        return datetime.strptime(value, '%Y-%m-%d')
+        parsed_date = datetime.strptime(value, '%Y-%m-%d')
     except ValueError:
         pass
 
     # Try other common formats
-    for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d']:
-        try:
-            return datetime.strptime(value, fmt)
-        except ValueError:
-            continue
+    if not parsed_date:
+        for fmt in ['%m/%d/%Y', '%d/%m/%Y', '%Y/%m/%d']:
+            try:
+                parsed_date = datetime.strptime(value, fmt)
+                break
+            except ValueError:
+                continue
+
+    # Return as YYYYMMDD string format - universally accepted by SQL Server
+    if parsed_date:
+        return parsed_date.strftime('%Y%m%d')
 
     return value
 

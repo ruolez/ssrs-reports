@@ -198,15 +198,16 @@ class ReportRenderer:
             context = ExpressionContext(row, 1, lookup_tables)
             value = evaluate_expression(eval_expr, context)
 
-            # Handle None values
+            # Handle None values - sort last
             if value is None:
-                return (1, '')  # Sort None values last
+                return (2, 0, '')
 
             # Try to convert to number for numeric sorting
             try:
-                return (0, float(value))
+                num_val = float(value)
+                return (0, num_val, '')  # Numbers first, sorted numerically
             except (ValueError, TypeError):
-                return (0, str(value).lower())
+                return (1, 0, str(value).lower())  # Strings second, sorted alphabetically
 
         reverse = direction.lower() == 'desc'
         return sorted(rows, key=get_sort_key, reverse=reverse)

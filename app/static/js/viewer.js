@@ -880,6 +880,31 @@ async function renderParameterForm(parameters) {
 
     let html = '';
 
+    // Check if we have date parameters for quick presets
+    const dateParams = parameters.filter(p => p.data_type === 'DateTime');
+    const hasDateRange = dateParams.some(p => p.name.toLowerCase().includes('from') || p.name.toLowerCase().includes('start')) &&
+                         dateParams.some(p => p.name.toLowerCase().includes('to') || p.name.toLowerCase().includes('end'));
+
+    if (hasDateRange) {
+        html += `
+            <div class="param-group param-group-presets">
+                <label class="param-label">Quick Select</label>
+                <select class="param-input param-select" id="datePresetSelect">
+                    <option value="">-- Date Range --</option>
+                    <option value="today">Today</option>
+                    <option value="yesterday">Yesterday</option>
+                    <option value="last7">Last 7 Days</option>
+                    <option value="last14">Last 14 Days</option>
+                    <option value="last30">Last 30 Days</option>
+                    <option value="mtd">Month to Date</option>
+                    <option value="lastMonth">Last Month</option>
+                    <option value="last3Months">Last 3 Months</option>
+                    <option value="ytd">Year to Date</option>
+                </select>
+            </div>
+        `;
+    }
+
     for (const param of parameters) {
         const inputType = param.data_type === 'DateTime' ? 'date' : 'text';
         const value = currentParams[param.name] !== undefined
@@ -1028,6 +1053,71 @@ async function renderParameterForm(parameters) {
             }
         });
     });
+
+    // Date preset handler
+    const datePresetSelect = document.getElementById('datePresetSelect');
+    if (datePresetSelect) {
+        datePresetSelect.addEventListener('change', (e) => {
+            const preset = e.target.value;
+            if (!preset) return;
+
+            const today = new Date();
+            let fromDate, toDate;
+
+            switch (preset) {
+                case 'today':
+                    fromDate = toDate = today;
+                    break;
+                case 'yesterday':
+                    fromDate = toDate = new Date(today.getTime() - 86400000);
+                    break;
+                case 'last7':
+                    fromDate = new Date(today.getTime() - 7 * 86400000);
+                    toDate = today;
+                    break;
+                case 'last14':
+                    fromDate = new Date(today.getTime() - 14 * 86400000);
+                    toDate = today;
+                    break;
+                case 'last30':
+                    fromDate = new Date(today.getTime() - 30 * 86400000);
+                    toDate = today;
+                    break;
+                case 'mtd':
+                    fromDate = new Date(today.getFullYear(), today.getMonth(), 1);
+                    toDate = today;
+                    break;
+                case 'lastMonth':
+                    fromDate = new Date(today.getFullYear(), today.getMonth() - 1, 1);
+                    toDate = new Date(today.getFullYear(), today.getMonth(), 0);
+                    break;
+                case 'last3Months':
+                    fromDate = new Date(today.getFullYear(), today.getMonth() - 3, 1);
+                    toDate = today;
+                    break;
+                case 'ytd':
+                    fromDate = new Date(today.getFullYear(), 0, 1);
+                    toDate = today;
+                    break;
+            }
+
+            // Format dates as YYYY-MM-DD for input fields
+            const formatDate = (d) => d.toISOString().split('T')[0];
+
+            // Find and update date inputs
+            const dateInputs = container.querySelectorAll('input[type="date"]');
+            dateInputs.forEach(input => {
+                const name = input.name.toLowerCase();
+                if (name.includes('from') || name.includes('start')) {
+                    input.value = formatDate(fromDate);
+                    currentParams[input.name] = input.value;
+                } else if (name.includes('to') || name.includes('end')) {
+                    input.value = formatDate(toDate);
+                    currentParams[input.name] = input.value;
+                }
+            });
+        });
+    }
 
     // Add listeners for multi-select dropdowns
     container.querySelectorAll('.param-multiselect-wrapper').forEach(wrapper => {

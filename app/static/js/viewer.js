@@ -843,8 +843,12 @@ async function loadReport() {
         // Check if all datasources are mapped before auto-running
         const unmappedCount = datasourceStatus.filter(ds => !ds.is_mapped).length;
 
-        // Auto-run if no required parameters AND all datasources are mapped
-        if (unmappedCount === 0 && (parameters.length === 0 || parameters.every(p => p.default_value))) {
+        // Auto-run if all datasources are mapped AND all parameters have values
+        // (either from URL params/drillthrough or from default values)
+        const allParamsHaveValues = parameters.length === 0 ||
+            parameters.every(p => currentParams[p.name] !== undefined && currentParams[p.name] !== '');
+
+        if (unmappedCount === 0 && allParamsHaveValues) {
             await runReport();
         }
     } catch (error) {
@@ -877,8 +881,11 @@ function renderParameterForm(parameters) {
     let html = '';
     parameters.forEach(param => {
         const inputType = param.data_type === 'DateTime' ? 'date' : 'text';
-        const defaultValue = param.default_value || '';
-        currentParams[param.name] = defaultValue;
+        // Use URL param if available (from drillthrough), otherwise use default
+        const value = currentParams[param.name] !== undefined
+            ? currentParams[param.name]
+            : (param.default_value || '');
+        currentParams[param.name] = value;
 
         html += `
             <div class="param-group">
@@ -886,7 +893,7 @@ function renderParameterForm(parameters) {
                 <input type="${inputType}"
                        class="param-input"
                        name="${param.name}"
-                       value="${escapeHtml(defaultValue)}"
+                       value="${escapeHtml(value)}"
                        placeholder="${escapeHtml(param.prompt || param.name)}">
             </div>
         `;
@@ -1065,7 +1072,8 @@ async function findAndOpenReport(reportName, params) {
             const paramStr = Object.entries(params)
                 .map(([k, v]) => `${k}=${encodeURIComponent(v)}`)
                 .join('&');
-            window.location.href = `/viewer/${report.id}?${paramStr}`;
+            // Open drillthrough report in new window
+            window.open(`/viewer/${report.id}?${paramStr}`, '_blank');
         } else {
             showToast(`Report "${reportName}" not found`, 'error');
         }
@@ -1167,7 +1175,13 @@ document.addEventListener('DOMContentLoaded', () => {
     setZoom(currentZoom);
     setFontSize(currentFontSize);
 
-    // Load report
+    // Extract URL parameters FIRST (from drillthrough links)
+    const urlParams = new URLSearchParams(window.location.search);
+    urlParams.forEach((value, key) => {
+        currentParams[key] = value;
+    });
+
+    // Load report (will use currentParams for drillthrough)
     loadReport();
 
     // Initialize keyboard shortcuts
@@ -1223,12 +1237,6 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Scroll to top button
     document.getElementById('scrollTopBtn').addEventListener('click', scrollToTop);
-
-    // Check for URL parameters (from drillthrough)
-    const urlParams = new URLSearchParams(window.location.search);
-    urlParams.forEach((value, key) => {
-        currentParams[key] = value;
-    });
 
     // Initialize icons
     if (typeof lucide !== 'undefined') {

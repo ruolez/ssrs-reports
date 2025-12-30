@@ -402,6 +402,85 @@ class ColumnFilters {
 
 const columnFilters = new ColumnFilters();
 
+// ============== Client-Side Sorting ==============
+function sortTableClientSide(columnIndex, direction) {
+    const table = document.querySelector('.report-table');
+    if (!table) return;
+
+    const tbody = table.querySelector('tbody');
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr:not(.filter-row)'));
+    if (rows.length === 0) return;
+
+    // Sort rows
+    rows.sort((a, b) => {
+        const cellA = a.querySelectorAll('td')[columnIndex];
+        const cellB = b.querySelectorAll('td')[columnIndex];
+        if (!cellA || !cellB) return 0;
+
+        let valA = cellA.textContent.trim();
+        let valB = cellB.textContent.trim();
+        const typeA = cellA.dataset.type || 'text';
+
+        // Handle empty values - sort last
+        if (valA === '' && valB === '') return 0;
+        if (valA === '') return 1;
+        if (valB === '') return -1;
+
+        let comparison = 0;
+
+        if (typeA === 'number') {
+            // Remove commas and parse as number
+            const numA = parseFloat(valA.replace(/,/g, '')) || 0;
+            const numB = parseFloat(valB.replace(/,/g, '')) || 0;
+            comparison = numA - numB;
+        } else if (typeA === 'date') {
+            // Parse dates
+            const dateA = new Date(valA);
+            const dateB = new Date(valB);
+            comparison = dateA - dateB;
+        } else {
+            // String comparison (case-insensitive)
+            comparison = valA.toLowerCase().localeCompare(valB.toLowerCase());
+        }
+
+        return direction === 'desc' ? -comparison : comparison;
+    });
+
+    // Reorder rows in DOM
+    rows.forEach(row => tbody.appendChild(row));
+
+    // Update sort indicators in headers
+    updateSortIndicators(columnIndex, direction);
+
+    // Re-apply filters if any
+    columnFilters.applyFilters();
+}
+
+function updateSortIndicators(columnIndex, direction) {
+    const headers = document.querySelectorAll('.report-table th');
+    headers.forEach((th, idx) => {
+        // Remove existing sort indicator
+        const existingIndicator = th.querySelector('.sort-indicator');
+        if (existingIndicator) {
+            existingIndicator.remove();
+        }
+
+        // Remove aria-sort
+        th.removeAttribute('aria-sort');
+
+        // Add indicator to sorted column
+        if (idx === columnIndex && th.classList.contains('sortable')) {
+            const indicator = document.createElement('span');
+            indicator.className = 'sort-indicator';
+            indicator.textContent = direction === 'asc' ? ' ▲' : ' ▼';
+            th.appendChild(indicator);
+            th.setAttribute('aria-sort', direction === 'asc' ? 'ascending' : 'descending');
+        }
+    });
+}
+
 // ============== Column Resize ==============
 class ColumnResizer {
     constructor() {
@@ -690,6 +769,10 @@ async function runReport() {
     try {
         showLoading();
 
+        // Reset sort state when fetching new data
+        currentSortColumn = null;
+        currentSortDirection = 'asc';
+
         // Collect current parameter values
         document.querySelectorAll('.param-input').forEach(input => {
             currentParams[input.name] = input.value;
@@ -698,9 +781,7 @@ async function runReport() {
         const startTime = performance.now();
 
         const data = await apiPost(`/api/reports/${REPORT_ID}/execute`, {
-            parameters: currentParams,
-            sort_column: currentSortColumn,
-            sort_direction: currentSortDirection
+            parameters: currentParams
         });
 
         execTimeMs = data.exec_time_ms || (performance.now() - startTime);
@@ -746,7 +827,7 @@ async function runReport() {
 }
 
 function initializeTableFeatures() {
-    // Add sort handlers
+    // Add sort handlers (client-side sorting)
     document.querySelectorAll('.report-table th.sortable').forEach(th => {
         th.addEventListener('click', (e) => {
             // Don't sort if clicking resize area
@@ -760,7 +841,7 @@ function initializeTableFeatures() {
                 currentSortColumn = column;
                 currentSortDirection = 'asc';
             }
-            runReport();
+            sortTableClientSide(parseInt(column), currentSortDirection);
         });
     });
 

@@ -69,7 +69,57 @@ def get_report(report_id):
         report = db.get_report_by_id(report_id)
         if not report:
             return jsonify({'success': False, 'error': 'Report not found'}), 404
-        return jsonify({'success': True, 'report': report})
+
+        # Parse datasources from report
+        datasources = report.get('datasources', [])
+        if isinstance(datasources, str):
+            datasources = json.loads(datasources) if datasources else []
+
+        # Get all mappings and connections
+        all_mappings = db.get_all_mappings()
+        all_connections = db.get_all_connections()
+
+        # Build mapping lookup: rdl_datasource_name -> mapping info
+        mapping_lookup = {m['rdl_datasource_name']: m for m in all_mappings}
+        connection_lookup = {c['id']: c for c in all_connections}
+
+        # Build datasource status for each datasource in the report
+        datasource_status = []
+        for ds in datasources:
+            ds_name = ds.get('name')
+            mapping = mapping_lookup.get(ds_name)
+
+            status = {
+                'name': ds_name,
+                'reference': ds.get('reference', ''),
+                'is_mapped': False,
+                'connection_id': None,
+                'connection_name': None
+            }
+
+            if mapping and mapping.get('connection_id'):
+                conn = connection_lookup.get(mapping['connection_id'])
+                if conn:
+                    status['is_mapped'] = True
+                    status['connection_id'] = conn['id']
+                    status['connection_name'] = conn['name']
+
+            datasource_status.append(status)
+
+        # Clean connections for response (remove passwords)
+        connections = [{
+            'id': c['id'],
+            'name': c['name'],
+            'server': c['server'],
+            'database_name': c['database_name']
+        } for c in all_connections]
+
+        return jsonify({
+            'success': True,
+            'report': report,
+            'datasource_status': datasource_status,
+            'connections': connections
+        })
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

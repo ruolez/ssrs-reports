@@ -142,6 +142,21 @@
     </button>
 </div>
 
+<!-- Data Source Status Panel -->
+<div id="datasourcePanel" class="datasource-panel hidden">
+    <div class="datasource-panel-header" onclick="toggleDatasourcePanel()">
+        <span class="datasource-panel-title">
+            <i data-lucide="database" style="width:16px;height:16px;"></i>
+            Data Sources
+        </span>
+        <span class="datasource-panel-status" id="datasourcePanelStatus"></span>
+        <i data-lucide="chevron-down" id="datasourcePanelChevron" style="width:16px;height:16px;"></i>
+    </div>
+    <div class="datasource-panel-content" id="datasourcePanelContent">
+        <!-- Populated by JavaScript -->
+    </div>
+</div>
+
 <!-- Parameter Form -->
 <div id="parameterForm" class="param-form hidden">
     <!-- Parameters will be inserted here -->
@@ -200,6 +215,152 @@
 </div>
 
 <style>
+/* Data Source Panel styles */
+.datasource-panel {
+    background: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    margin: 1rem 0;
+}
+
+.datasource-panel-header {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    cursor: pointer;
+    user-select: none;
+    border-radius: 8px;
+}
+
+.datasource-panel-header:hover {
+    background: var(--primary-light);
+}
+
+.datasource-panel-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-weight: 500;
+}
+
+.datasource-panel-status {
+    margin-left: auto;
+    font-size: 0.875rem;
+}
+
+.datasource-panel-content {
+    border-top: 1px solid var(--outline);
+    padding: 1rem;
+}
+
+.datasource-panel.collapsed .datasource-panel-content {
+    display: none;
+}
+
+.datasource-panel.collapsed #datasourcePanelChevron {
+    transform: rotate(-90deg);
+}
+
+#datasourcePanelChevron {
+    transition: transform 0.2s ease;
+}
+
+.datasource-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.5rem 0;
+    border-bottom: 1px solid var(--outline);
+    flex-wrap: wrap;
+}
+
+.datasource-item:last-child {
+    border-bottom: none;
+}
+
+.datasource-name {
+    font-weight: 500;
+    min-width: 150px;
+}
+
+.datasource-status {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.datasource-mapped {
+    color: var(--success);
+}
+
+.datasource-unmapped {
+    color: var(--warning);
+}
+
+.datasource-connection {
+    color: var(--text-secondary);
+    font-size: 0.875rem;
+}
+
+.datasource-select {
+    padding: 0.375rem 0.5rem;
+    border: 1px solid var(--outline);
+    border-radius: 4px;
+    font-size: 0.875rem;
+    min-width: 200px;
+    background: var(--surface);
+    color: var(--on-surface);
+}
+
+.datasource-save-btn {
+    padding: 0.375rem 0.75rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.datasource-save-btn:hover {
+    background: var(--primary-hover);
+}
+
+.datasource-save-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.datasource-warning {
+    background: #fff3cd;
+    color: #856404;
+    padding: 0.75rem 1rem;
+    border-radius: 4px;
+    margin-top: 0.5rem;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.badge-success {
+    background: var(--success);
+    color: white;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
+.badge-warning {
+    background: var(--warning);
+    color: #856404;
+    padding: 0.25rem 0.5rem;
+    border-radius: 4px;
+    font-size: 0.75rem;
+    font-weight: 500;
+}
+
 /* Dropdown styles */
 .dropdown {
     position: relative;

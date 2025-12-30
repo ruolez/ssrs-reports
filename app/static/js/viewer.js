@@ -8,6 +8,8 @@ let currentSortColumn = null;
 let currentSortDirection = 'asc';
 let totalRowCount = 0;
 let execTimeMs = 0;
+let datasourceStatus = [];
+let availableConnections = [];
 
 // Viewer preferences (localStorage)
 const STORAGE_PREFIX = 'rdl_viewer_';
@@ -663,16 +665,164 @@ function toggleParameters() {
     btn.classList.toggle('active', !form.classList.contains('hidden'));
 }
 
+// ============== Data Source Panel ==============
+function renderDatasourcePanel() {
+    const panel = document.getElementById('datasourcePanel');
+    const content = document.getElementById('datasourcePanelContent');
+    const statusSpan = document.getElementById('datasourcePanelStatus');
+
+    if (!panel || datasourceStatus.length === 0) {
+        if (panel) panel.classList.add('hidden');
+        return;
+    }
+
+    panel.classList.remove('hidden');
+
+    const unmappedCount = datasourceStatus.filter(ds => !ds.is_mapped).length;
+    const allMapped = unmappedCount === 0;
+
+    // Update status indicator
+    if (allMapped) {
+        statusSpan.innerHTML = '<span class="badge-success">All Mapped</span>';
+    } else {
+        statusSpan.innerHTML = `<span class="badge-warning">${unmappedCount} Unmapped</span>`;
+    }
+
+    // Build content HTML
+    let html = '';
+    datasourceStatus.forEach((ds, idx) => {
+        if (ds.is_mapped) {
+            html += `
+                <div class="datasource-item">
+                    <span class="datasource-name">${escapeHtml(ds.name)}</span>
+                    <span class="datasource-status datasource-mapped">
+                        <i data-lucide="check-circle" style="width:16px;height:16px;"></i>
+                        Mapped
+                    </span>
+                    <span class="datasource-connection">→ ${escapeHtml(ds.connection_name)}</span>
+                </div>
+            `;
+        } else {
+            html += `
+                <div class="datasource-item">
+                    <span class="datasource-name">${escapeHtml(ds.name)}</span>
+                    <span class="datasource-status datasource-unmapped">
+                        <i data-lucide="alert-circle" style="width:16px;height:16px;"></i>
+                        Not Mapped
+                    </span>
+                    <select class="datasource-select" id="dsSelect_${idx}" onchange="onDatasourceSelectChange(${idx})">
+                        <option value="">-- Select Connection --</option>
+                        ${availableConnections.map(c =>
+                            `<option value="${c.id}">${escapeHtml(c.name)} (${escapeHtml(c.server)}/${escapeHtml(c.database_name)})</option>`
+                        ).join('')}
+                    </select>
+                    <button class="datasource-save-btn" id="dsSaveBtn_${idx}" onclick="saveDatasourceMapping(${idx})" disabled>
+                        Save
+                    </button>
+                </div>
+            `;
+        }
+    });
+
+    if (!allMapped) {
+        html += `
+            <div class="datasource-warning">
+                <i data-lucide="alert-triangle" style="width:16px;height:16px;"></i>
+                ${unmappedCount} data source${unmappedCount > 1 ? 's need' : ' needs'} mapping before the report can run
+            </div>
+        `;
+    }
+
+    content.innerHTML = html;
+
+    // Update run button state
+    updateRunButtonState();
+
+    // Refresh icons
+    if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+    }
+}
+
+function toggleDatasourcePanel() {
+    const panel = document.getElementById('datasourcePanel');
+    panel.classList.toggle('collapsed');
+}
+
+function onDatasourceSelectChange(idx) {
+    const select = document.getElementById(`dsSelect_${idx}`);
+    const btn = document.getElementById(`dsSaveBtn_${idx}`);
+    btn.disabled = !select.value;
+}
+
+async function saveDatasourceMapping(idx) {
+    const ds = datasourceStatus[idx];
+    const select = document.getElementById(`dsSelect_${idx}`);
+    const btn = document.getElementById(`dsSaveBtn_${idx}`);
+
+    if (!select.value) return;
+
+    try {
+        btn.disabled = true;
+        btn.textContent = 'Saving...';
+
+        await apiPost('/api/datasources/mappings', {
+            rdl_datasource_name: ds.name,
+            connection_id: parseInt(select.value)
+        });
+
+        showToast('Mapping saved successfully');
+
+        // Reload report to refresh status
+        await loadReport();
+    } catch (error) {
+        showToast('Failed to save mapping: ' + error.message, 'error');
+        btn.disabled = false;
+        btn.textContent = 'Save';
+    }
+}
+
+function updateRunButtonState() {
+    const unmappedCount = datasourceStatus.filter(ds => !ds.is_mapped).length;
+    const runBtn = document.querySelector('.btn-primary[onclick="runReport()"]');
+    const refreshBtn = document.getElementById('refreshBtn');
+
+    if (unmappedCount > 0) {
+        if (runBtn) {
+            runBtn.disabled = true;
+            runBtn.title = `${unmappedCount} data source${unmappedCount > 1 ? 's need' : ' needs'} mapping`;
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = true;
+            refreshBtn.title = 'Configure data sources first';
+        }
+    } else {
+        if (runBtn) {
+            runBtn.disabled = false;
+            runBtn.title = '';
+        }
+        if (refreshBtn) {
+            refreshBtn.disabled = false;
+            refreshBtn.title = 'Refresh Report';
+        }
+    }
+}
+
 // ============== Report Loading ==============
 async function loadReport() {
     try {
         showLoading();
         const data = await apiGet(`/api/reports/${REPORT_ID}`);
         reportData = data.report;
+        datasourceStatus = data.datasource_status || [];
+        availableConnections = data.connections || [];
 
         // Update title
         document.getElementById('reportTitle').textContent = reportData.display_name;
         document.title = `${reportData.display_name} - RDL Report Viewer`;
+
+        // Render data source panel
+        renderDatasourcePanel();
 
         // Render parameter form
         const parameters = typeof reportData.parameters === 'string'
@@ -687,8 +837,11 @@ async function loadReport() {
             paramsBtn.style.opacity = '0.5';
         }
 
-        // Auto-run if no required parameters
-        if (parameters.length === 0 || parameters.every(p => p.default_value)) {
+        // Check if all datasources are mapped before auto-running
+        const unmappedCount = datasourceStatus.filter(ds => !ds.is_mapped).length;
+
+        // Auto-run if no required parameters AND all datasources are mapped
+        if (unmappedCount === 0 && (parameters.length === 0 || parameters.every(p => p.default_value))) {
             await runReport();
         }
     } catch (error) {

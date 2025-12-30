@@ -1624,6 +1624,11 @@ tbody tr:last-child td {
     min-width: 0;
 }
 
+/* Sidebar overlay - hidden by default on desktop */
+.sidebar-overlay {
+    display: none;
+}
+
 /* Sidebar Toggle Button */
 .sidebar-toggle {
     background: none;
@@ -2116,6 +2121,7 @@ tbody tr:last-child td {
     }
 
     .sidebar-overlay {
+        display: block;
         position: fixed;
         inset: 0;
         top: 64px;

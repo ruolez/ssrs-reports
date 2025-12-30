@@ -312,6 +312,11 @@ class RdlParser:
                 if color_elem is not None:
                     style['color'] = color_elem.text
 
+                # Format (for dates, numbers, etc.)
+                format_elem = text_style.find('r:Format', NAMESPACES)
+                if format_elem is not None:
+                    style['format'] = format_elem.text
+
         # Text alignment
         para = element.find('.//r:Paragraph/r:Style', NAMESPACES)
         if para is not None:

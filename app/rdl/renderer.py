@@ -82,11 +82,13 @@ class ReportRenderer:
 
             for col_idx, col in enumerate(columns):
                 expression = col.get('field_expression', '')
-                detail_style = self._build_style_string(col.get('detail_style', {}))
+                detail_style_dict = col.get('detail_style', {})
+                detail_style = self._build_style_string(detail_style_dict)
                 drillthrough = col.get('drillthrough')
+                value_format = detail_style_dict.get('format')
 
                 value = evaluate_expression(expression, context)
-                display_value = self._format_value(value)
+                display_value = self._format_value(value, value_format)
                 data_type = self._get_data_type(value)
 
                 # Cell attributes
@@ -162,12 +164,25 @@ class ReportRenderer:
 
         return '; '.join(css_parts)
 
-    def _format_value(self, value: Any) -> str:
+    def _format_value(self, value: Any, format_str: Optional[str] = None) -> str:
         """Format a value for display."""
         if value is None:
             return ''
         if isinstance(value, bool):
             return 'Yes' if value else 'No'
+
+        # Handle datetime objects
+        if isinstance(value, datetime):
+            return self._format_datetime(value, format_str)
+        if isinstance(value, date):
+            return self._format_datetime(datetime.combine(value, datetime.min.time()), format_str)
+
+        # Try to parse string as datetime if format suggests it's a date/time
+        if isinstance(value, str) and format_str:
+            parsed_dt = self._try_parse_datetime(value)
+            if parsed_dt:
+                return self._format_datetime(parsed_dt, format_str)
+
         if isinstance(value, (int, float, Decimal)):
             # Format numbers with commas for thousands
             if isinstance(value, float) and value.is_integer():
@@ -180,6 +195,75 @@ class ReportRenderer:
                 return f"{float(value):,.2f}"
             return f"{value:,.2f}"
         return str(value)
+
+    def _try_parse_datetime(self, value: str) -> Optional[datetime]:
+        """Try to parse a string as datetime."""
+        formats = [
+            '%Y-%m-%d %H:%M:%S.%f',
+            '%Y-%m-%d %H:%M:%S',
+            '%Y-%m-%dT%H:%M:%S.%f',
+            '%Y-%m-%dT%H:%M:%S',
+            '%Y-%m-%d',
+            '%m/%d/%Y %H:%M:%S',
+            '%m/%d/%Y %I:%M:%S %p',
+            '%m/%d/%Y %I:%M %p',
+            '%m/%d/%Y',
+            '%d/%m/%Y',
+        ]
+        for fmt in formats:
+            try:
+                return datetime.strptime(value.strip(), fmt)
+            except ValueError:
+                continue
+        return None
+
+    def _format_datetime(self, dt: datetime, format_str: Optional[str] = None) -> str:
+        """Format datetime using .NET-style format specifiers."""
+        if format_str is None:
+            # Default: show date and time if time component exists
+            if dt.hour == 0 and dt.minute == 0 and dt.second == 0:
+                return dt.strftime('%m/%d/%Y')
+            return dt.strftime('%m/%d/%Y %I:%M %p')
+
+        # Map common .NET format specifiers to Python strftime
+        format_map = {
+            'd': '%m/%d/%Y',           # Short date
+            'D': '%A, %B %d, %Y',      # Long date
+            't': '%I:%M %p',           # Short time
+            'T': '%I:%M:%S %p',        # Long time
+            'f': '%A, %B %d, %Y %I:%M %p',      # Full date/time (short time)
+            'F': '%A, %B %d, %Y %I:%M:%S %p',   # Full date/time (long time)
+            'g': '%m/%d/%Y %I:%M %p',  # General date/time (short time)
+            'G': '%m/%d/%Y %I:%M:%S %p',  # General date/time (long time)
+            'M': '%B %d',              # Month day
+            'm': '%B %d',              # Month day
+            'Y': '%B %Y',              # Year month
+            'y': '%B %Y',              # Year month
+        }
+
+        if format_str in format_map:
+            return dt.strftime(format_map[format_str])
+
+        # Try to interpret custom format strings
+        # Common custom formats: MM/dd/yyyy, hh:mm tt, etc.
+        custom_format = format_str
+        replacements = [
+            ('yyyy', '%Y'), ('yy', '%y'),
+            ('MMMM', '%B'), ('MMM', '%b'), ('MM', '%m'),
+            ('dddd', '%A'), ('ddd', '%a'), ('dd', '%d'),
+            ('HH', '%H'), ('hh', '%I'), ('H', '%-H'), ('h', '%-I'),
+            ('mm', '%M'), ('ss', '%S'),
+            ('tt', '%p'), ('t', '%p'),
+            ('fff', '%f'), ('ff', '%f'), ('f', '%f'),
+        ]
+        for dotnet, python in replacements:
+            custom_format = custom_format.replace(dotnet, python)
+
+        try:
+            return dt.strftime(custom_format)
+        except ValueError:
+            # Fallback to default format
+            return dt.strftime('%m/%d/%Y %I:%M %p')
 
     def _sort_data(self, rows: List[Dict], columns: List[Dict], sort_idx: int,
                    direction: str, lookup_tables: Dict) -> List[Dict]:

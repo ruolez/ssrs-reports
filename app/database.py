@@ -356,7 +356,8 @@ class PostgreSQLManager:
             with conn.cursor() as cur:
                 cur.execute('''
                     SELECT c.*, s.name as server_name, s.server as server_address,
-                           s.port as server_port, s.username as server_username
+                           s.port as server_port, s.username as server_username,
+                           s.password_encrypted as server_password_encrypted
                     FROM data_source_connections c
                     LEFT JOIN sql_servers s ON c.sql_server_id = s.id
                     ORDER BY c.name

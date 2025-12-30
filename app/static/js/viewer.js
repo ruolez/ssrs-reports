@@ -77,12 +77,14 @@ function actualSize() {
 
 // ============== Font Size Controls ==============
 const FONT_SIZES = {
-    small: '12px',
-    medium: '14px',
-    large: '16px',
-    xlarge: '18px'
+    tiny: '9px',
+    xsmall: '10px',
+    small: '11px',
+    medium: '13px',
+    large: '15px',
+    xlarge: '17px'
 };
-const FONT_SIZE_ORDER = ['small', 'medium', 'large', 'xlarge'];
+const FONT_SIZE_ORDER = ['tiny', 'xsmall', 'small', 'medium', 'large', 'xlarge'];
 let currentFontSize = loadPreference('fontSize', 'medium');
 
 function setFontSize(size) {

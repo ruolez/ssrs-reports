@@ -846,7 +846,7 @@ tbody tr:last-child td {
 /* ============== Viewer CSS Custom Properties ============== */
 :root {
     --viewer-zoom: 1;
-    --viewer-font-size: 14px;
+    --viewer-font-size: 13px;
 }
 
 /* ============== Viewer Toolbar ============== */
@@ -1269,13 +1269,14 @@ tbody tr:last-child td {
 }
 
 .report-table {
-    font-size: var(--viewer-font-size, 14px);
+    font-size: var(--viewer-font-size, 13px) !important;
 }
 
 .report-table th,
 .report-table td,
-.report-table a {
-    font-size: inherit;
+.report-table a,
+.report-table span {
+    font-size: inherit !important;
 }
 
 .report-table th {

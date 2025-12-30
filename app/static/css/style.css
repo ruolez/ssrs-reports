@@ -1,19 +1,57 @@
 /* ============== CSS Variables ============== */
 :root {
-    /* Light theme (default fallback) */
-    --primary: #207176;
-    --primary-hover: #195a5e;
-    --primary-light: #e0f2f3;
-    --background: #f8f9fa;
+    /* GitHub Primer Light Mode Colors */
+
+    /* Accent - GitHub Blue */
+    --primary: #0969da;
+    --primary-hover: #0550ae;
+    --primary-light: rgba(9, 105, 218, 0.1);
+    --primary-muted: #ddf4ff;
+
+    /* Canvas/Backgrounds */
+    --background: #f6f8fa;
     --surface: #ffffff;
-    --surface-elevated: #ffffff;
-    --error: #d93025;
-    --success: #1e8e3e;
-    --warning: #f9ab00;
-    --on-surface: #202124;
-    --on-surface-secondary: #5f6368;
-    --outline: #dadce0;
-    --shadow: rgba(0, 0, 0, 0.1);
+    --surface-elevated: #f6f8fa;
+    --surface-inset: #f6f8fa;
+    --surface-overlay: #ffffff;
+
+    /* Semantic Colors */
+    --error: #cf222e;
+    --error-emphasis: #a40e26;
+    --error-subtle: rgba(255, 129, 130, 0.2);
+    --success: #1a7f37;
+    --success-emphasis: #1f883d;
+    --success-subtle: rgba(74, 194, 107, 0.2);
+    --warning: #9a6700;
+    --warning-emphasis: #7d4e00;
+    --warning-subtle: rgba(212, 167, 44, 0.2);
+    --severe: #bc4c00;
+    --done: #8250df;
+
+    /* Text/Foreground */
+    --on-surface: #1f2328;
+    --on-surface-secondary: #59636e;
+    --on-surface-tertiary: #818b98;
+    --on-emphasis: #ffffff;
+
+    /* Borders */
+    --outline: #d1d9e0;
+    --outline-muted: #d1d9e0b3;
+    --outline-emphasis: #818b98;
+
+    /* Shadows - GitHub light mode multi-layer shadow */
+    --shadow: rgba(31, 35, 40, 0.04);
+    --shadow-medium: 0 3px 6px rgba(140, 149, 159, 0.15);
+    --shadow-large: 0 8px 24px rgba(140, 149, 159, 0.2);
+    --shadow-extra-large: 0 12px 28px rgba(140, 149, 159, 0.3);
+    --shadow-inset: inset 0 1px 0 rgba(31, 35, 40, 0.04);
+
+    /* Button Colors - GitHub Green for primary actions */
+    --btn-primary-bg: #1f883d;
+    --btn-primary-hover: #1c8139;
+    --btn-primary-active: #197935;
+    --btn-primary-text: #ffffff;
+    --btn-primary-border: rgba(31, 35, 40, 0.15);
 }
 
 [data-theme="dark"] {
@@ -270,22 +308,30 @@ body:has(.viewer-toolbar) .page-header {
 }
 
 .btn-primary {
-    background-color: var(--primary);
-    color: white;
+    background-color: var(--btn-primary-bg);
+    color: var(--btn-primary-text);
+    border: 1px solid var(--btn-primary-border);
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
 }
 
 .btn-primary:hover {
-    background-color: var(--primary-hover);
+    background-color: var(--btn-primary-hover);
+}
+
+.btn-primary:active {
+    background-color: var(--btn-primary-active);
 }
 
 .btn-secondary {
-    background-color: var(--surface-elevated);
+    background-color: var(--surface);
     color: var(--on-surface);
     border: 1px solid var(--outline);
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
 }
 
 .btn-secondary:hover {
-    background-color: var(--outline);
+    background-color: var(--surface-elevated);
+    border-color: var(--outline-emphasis);
 }
 
 .btn-danger {
@@ -2011,13 +2057,14 @@ tbody tr:last-child td {
 }
 
 .report-table th {
-    background-color: var(--primary);
-    color: white;
+    background-color: var(--surface-elevated);
+    color: var(--on-surface);
     user-select: none;
+    border-bottom: 1px solid var(--outline);
 }
 
 .report-table th.sortable:hover {
-    background-color: var(--primary-hover);
+    background-color: #eaeef2;
 }
 
 .report-table .sort-indicator {
@@ -2096,20 +2143,21 @@ tbody tr:last-child td {
     }
 
     .report-table th {
-        background-color: #207176 !important;
-        color: white !important;
+        background-color: #f6f8fa !important;
+        color: #1f2328 !important;
+        font-weight: 600 !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
 
     .report-table th,
     .report-table td {
-        border: 1px solid #ccc;
+        border: 1px solid #d1d9e0;
         padding: 6px 8px;
     }
 
     .report-table tbody tr:nth-child(even) {
-        background-color: #f5f5f5 !important;
+        background-color: #f6f8fa !important;
         -webkit-print-color-adjust: exact;
         print-color-adjust: exact;
     }
@@ -2119,7 +2167,7 @@ tbody tr:last-child td {
         border: none;
         padding: 0 0 16px 0;
         margin-bottom: 16px;
-        border-bottom: 2px solid #207176;
+        border-bottom: 2px solid #0969da;
     }
 
     .report-header-meta {
@@ -2862,4 +2910,494 @@ tbody tr:last-child td {
     .main-content {
         padding: 16px;
     }
+}
+
+/* ============== GitHub Light Mode Enhancements ============== */
+
+/* Light mode color scheme declaration */
+:root,
+[data-theme="light"] {
+    color-scheme: light;
+}
+
+/* GitHub-style Cards in Light Mode */
+:root .card,
+[data-theme="light"] .card {
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04), 0 1px 3px rgba(31, 35, 40, 0.08);
+    border-color: var(--outline);
+}
+
+:root .card:hover,
+[data-theme="light"] .card:hover {
+    box-shadow: 0 3px 6px rgba(140, 149, 159, 0.15);
+}
+
+:root .report-card,
+[data-theme="light"] .report-card {
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
+}
+
+:root .report-card:hover,
+[data-theme="light"] .report-card:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(140, 149, 159, 0.2);
+}
+
+/* GitHub-style Buttons - override for light mode primary */
+:root .btn-primary,
+[data-theme="light"] .btn-primary {
+    background-color: #1f883d;
+    border: 1px solid rgba(31, 35, 40, 0.15);
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.1);
+}
+
+:root .btn-primary:hover,
+[data-theme="light"] .btn-primary:hover {
+    background-color: #1c8139;
+}
+
+:root .btn-primary:active,
+[data-theme="light"] .btn-primary:active {
+    background-color: #197935;
+}
+
+:root .btn-secondary,
+[data-theme="light"] .btn-secondary {
+    background-color: #f6f8fa;
+    border: 1px solid var(--outline);
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
+}
+
+:root .btn-secondary:hover,
+[data-theme="light"] .btn-secondary:hover {
+    background-color: #f3f4f6;
+    border-color: var(--outline-emphasis);
+}
+
+:root .btn-danger,
+[data-theme="light"] .btn-danger {
+    background-color: #cf222e;
+    border: 1px solid rgba(31, 35, 40, 0.15);
+}
+
+:root .btn-danger:hover,
+[data-theme="light"] .btn-danger:hover {
+    background-color: #a40e26;
+}
+
+/* GitHub-style Form Inputs in Light Mode */
+:root .form-input,
+:root .form-select,
+:root .param-input,
+:root .filter-input,
+[data-theme="light"] .form-input,
+[data-theme="light"] .form-select,
+[data-theme="light"] .param-input,
+[data-theme="light"] .filter-input {
+    background-color: var(--surface);
+    border-color: var(--outline);
+    box-shadow: var(--shadow-inset);
+}
+
+:root .form-input:focus,
+:root .form-select:focus,
+:root .param-input:focus,
+:root .filter-input:focus,
+[data-theme="light"] .form-input:focus,
+[data-theme="light"] .form-select:focus,
+[data-theme="light"] .param-input:focus,
+[data-theme="light"] .filter-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+    outline: none;
+}
+
+:root .form-input::placeholder,
+:root .filter-input::placeholder,
+[data-theme="light"] .form-input::placeholder,
+[data-theme="light"] .filter-input::placeholder {
+    color: var(--on-surface-tertiary);
+}
+
+/* GitHub-style Table Headers in Light Mode */
+:root .report-table th,
+[data-theme="light"] .report-table th {
+    background-color: var(--surface-elevated);
+    color: var(--on-surface);
+    border-bottom: 1px solid var(--outline);
+    font-weight: 600;
+}
+
+:root .report-table th.sortable:hover,
+[data-theme="light"] .report-table th.sortable:hover {
+    background-color: #eaeef2;
+}
+
+:root .report-table tbody tr:nth-child(even),
+[data-theme="light"] .report-table tbody tr:nth-child(even) {
+    background-color: rgba(246, 248, 250, 0.5);
+}
+
+:root tbody tr:hover,
+[data-theme="light"] tbody tr:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+}
+
+:root .report-table tbody tr:hover,
+[data-theme="light"] .report-table tbody tr:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+}
+
+/* GitHub-style Modal in Light Mode */
+:root .modal,
+[data-theme="light"] .modal {
+    background-color: var(--surface);
+    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+    border: 1px solid var(--outline);
+}
+
+:root .modal-overlay,
+[data-theme="light"] .modal-overlay {
+    background-color: rgba(31, 35, 40, 0.5);
+}
+
+/* GitHub-style Context Menu in Light Mode */
+:root .context-menu,
+[data-theme="light"] .context-menu {
+    background-color: var(--surface);
+    border-color: var(--outline);
+    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+/* GitHub-style Toast in Light Mode */
+:root .toast,
+[data-theme="light"] .toast {
+    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+:root .toast-success,
+[data-theme="light"] .toast-success {
+    background-color: #1f883d;
+}
+
+:root .toast-error,
+[data-theme="light"] .toast-error {
+    background-color: #cf222e;
+}
+
+:root .toast-warning,
+[data-theme="light"] .toast-warning {
+    background-color: #9a6700;
+    color: #ffffff;
+}
+
+/* GitHub-style Badges in Light Mode */
+:root .badge-success,
+[data-theme="light"] .badge-success {
+    background-color: var(--success-subtle);
+    color: var(--success);
+}
+
+:root .badge-warning,
+[data-theme="light"] .badge-warning {
+    background-color: var(--warning-subtle);
+    color: var(--warning);
+}
+
+:root .badge-error,
+[data-theme="light"] .badge-error {
+    background-color: var(--error-subtle);
+    color: var(--error);
+}
+
+/* GitHub-style File Upload in Light Mode */
+:root .file-upload-area,
+[data-theme="light"] .file-upload-area {
+    border-color: var(--outline);
+    background-color: var(--surface);
+}
+
+:root .file-upload-area:hover,
+:root .file-upload-area.dragover,
+[data-theme="light"] .file-upload-area:hover,
+[data-theme="light"] .file-upload-area.dragover {
+    border-color: var(--primary);
+    background-color: var(--primary-muted);
+}
+
+/* GitHub-style Loading in Light Mode */
+:root .loading-overlay,
+[data-theme="light"] .loading-overlay {
+    background-color: rgba(255, 255, 255, 0.6);
+}
+
+:root .loading-spinner,
+[data-theme="light"] .loading-spinner {
+    border-color: var(--outline);
+    border-top-color: var(--primary);
+}
+
+/* GitHub-style Sidebar in Light Mode */
+:root .sidebar,
+[data-theme="light"] .sidebar {
+    background-color: var(--surface);
+    border-right-color: var(--outline);
+}
+
+:root .folder-item-content:hover,
+[data-theme="light"] .folder-item-content:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+}
+
+:root .folder-item-content.active,
+[data-theme="light"] .folder-item-content.active {
+    background-color: rgba(9, 105, 218, 0.1);
+    border-left-color: var(--primary);
+}
+
+/* GitHub-style Dropdowns in Light Mode */
+:root .column-visibility-dropdown,
+[data-theme="light"] .column-visibility-dropdown {
+    background-color: var(--surface);
+    border-color: var(--outline);
+    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+:root .param-multiselect-dropdown,
+[data-theme="light"] .param-multiselect-dropdown {
+    background-color: var(--surface);
+    box-shadow: 0 8px 24px rgba(140, 149, 159, 0.2);
+}
+
+/* GitHub-style Toolbar in Light Mode */
+:root .toolbar-btn,
+[data-theme="light"] .toolbar-btn {
+    background-color: var(--surface);
+    border-color: var(--outline);
+    box-shadow: 0 1px 0 rgba(31, 35, 40, 0.04);
+}
+
+:root .toolbar-btn:hover,
+[data-theme="light"] .toolbar-btn:hover {
+    background-color: var(--surface-elevated);
+    border-color: var(--outline-emphasis);
+}
+
+:root .toolbar-btn.active,
+[data-theme="light"] .toolbar-btn.active {
+    background-color: var(--primary);
+    border-color: var(--primary);
+}
+
+/* GitHub-style Nav Links in Light Mode */
+:root .nav-link:hover,
+[data-theme="light"] .nav-link:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+    text-decoration: none;
+}
+
+:root .nav-link.active,
+[data-theme="light"] .nav-link.active {
+    background-color: rgba(9, 105, 218, 0.1);
+}
+
+/* GitHub-style Selection in Light Mode */
+:root ::selection,
+[data-theme="light"] ::selection {
+    background-color: rgba(9, 105, 218, 0.3);
+    color: var(--on-surface);
+}
+
+/* GitHub-style Scrollbars in Light Mode */
+:root ::-webkit-scrollbar,
+[data-theme="light"] ::-webkit-scrollbar {
+    width: 10px;
+    height: 10px;
+}
+
+:root ::-webkit-scrollbar-track,
+[data-theme="light"] ::-webkit-scrollbar-track {
+    background: var(--surface);
+    border-radius: 5px;
+}
+
+:root ::-webkit-scrollbar-thumb,
+[data-theme="light"] ::-webkit-scrollbar-thumb {
+    background: var(--outline-emphasis);
+    border-radius: 5px;
+    border: 2px solid var(--surface);
+}
+
+:root ::-webkit-scrollbar-thumb:hover,
+[data-theme="light"] ::-webkit-scrollbar-thumb:hover {
+    background: var(--on-surface-secondary);
+}
+
+:root ::-webkit-scrollbar-corner,
+[data-theme="light"] ::-webkit-scrollbar-corner {
+    background: var(--surface);
+}
+
+/* Firefox Scrollbar in Light Mode */
+:root *,
+[data-theme="light"] * {
+    scrollbar-width: thin;
+    scrollbar-color: var(--outline-emphasis) var(--surface);
+}
+
+/* GitHub-style Link Hover in Light Mode */
+:root a:hover,
+[data-theme="light"] a:hover {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
+/* GitHub-style Breadcrumb in Light Mode */
+:root .breadcrumb-item a:hover,
+[data-theme="light"] .breadcrumb-item a:hover {
+    color: var(--primary);
+}
+
+/* GitHub-style Meta Badge in Light Mode */
+:root .meta-badge,
+[data-theme="light"] .meta-badge {
+    background-color: var(--surface-elevated);
+    border-color: var(--outline);
+}
+
+/* GitHub-style Checkbox and Radio in Light Mode */
+:root input[type="checkbox"],
+:root input[type="radio"],
+[data-theme="light"] input[type="checkbox"],
+[data-theme="light"] input[type="radio"] {
+    accent-color: var(--primary);
+}
+
+/* GitHub-style Param Form in Light Mode */
+:root .param-form,
+[data-theme="light"] .param-form {
+    background-color: var(--surface-elevated);
+    border: 1px solid var(--outline);
+}
+
+/* GitHub-style Header Section in Light Mode */
+:root .report-header-section,
+[data-theme="light"] .report-header-section {
+    background-color: var(--surface);
+    border-color: var(--outline);
+}
+
+/* GitHub-style Status Bar in Light Mode */
+:root .report-status-bar,
+[data-theme="light"] .report-status-bar {
+    background-color: var(--surface);
+    border-color: var(--outline);
+}
+
+/* GitHub-style Search Bar in Light Mode */
+:root .report-search-bar,
+[data-theme="light"] .report-search-bar {
+    background-color: var(--surface-elevated);
+    border-color: var(--outline);
+}
+
+/* GitHub-style Viewer Toolbar in Light Mode */
+:root .viewer-toolbar,
+[data-theme="light"] .viewer-toolbar {
+    background-color: var(--surface);
+    border-color: var(--outline);
+}
+
+/* GitHub-style Table Container in Light Mode */
+:root .table-container,
+:root .report-table-container,
+[data-theme="light"] .table-container,
+[data-theme="light"] .report-table-container {
+    border-color: var(--outline);
+}
+
+/* GitHub-style Card Header in Light Mode */
+:root .card-header,
+[data-theme="light"] .card-header {
+    background-color: var(--surface-elevated);
+    border-bottom-color: var(--outline);
+}
+
+/* GitHub-style Modal Header/Footer in Light Mode */
+:root .modal-header,
+[data-theme="light"] .modal-header {
+    border-bottom-color: var(--outline);
+}
+
+:root .modal-footer,
+[data-theme="light"] .modal-footer {
+    border-top-color: var(--outline);
+}
+
+/* GitHub-style Folder Select in Light Mode */
+:root .folder-select-list,
+[data-theme="light"] .folder-select-list {
+    border-color: var(--outline);
+}
+
+:root .folder-select-item,
+[data-theme="light"] .folder-select-item {
+    border-bottom-color: var(--outline);
+}
+
+:root .folder-select-item:hover,
+[data-theme="light"] .folder-select-item:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+}
+
+:root .folder-select-item.selected,
+[data-theme="light"] .folder-select-item.selected {
+    background-color: rgba(9, 105, 218, 0.1);
+    border-left-color: var(--primary);
+}
+
+/* GitHub-style Search Input in Light Mode */
+:root .search-input,
+[data-theme="light"] .search-input {
+    background-color: var(--surface);
+    border-color: var(--outline);
+}
+
+:root .search-input:focus,
+[data-theme="light"] .search-input:focus {
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px rgba(9, 105, 218, 0.15);
+}
+
+/* GitHub-style Theme Toggle in Light Mode */
+:root .theme-toggle:hover,
+[data-theme="light"] .theme-toggle:hover {
+    background-color: rgba(9, 105, 218, 0.06);
+    color: var(--primary);
+}
+
+/* GitHub-style Bulk Actions Bar in Light Mode */
+:root .bulk-actions-bar,
+[data-theme="light"] .bulk-actions-bar {
+    background-color: var(--primary);
+}
+
+/* GitHub-style Search Highlight in Light Mode */
+:root .search-highlight,
+[data-theme="light"] .search-highlight {
+    background-color: #fff8c5;
+    color: #1f2328;
+    padding: 1px 3px;
+    border-radius: 3px;
+}
+
+/* Smooth transitions for theme switching */
+body,
+.card,
+.btn,
+.form-input,
+.navbar,
+.sidebar,
+.modal {
+    transition: background-color 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
 }

@@ -167,21 +167,16 @@ def upload_report():
         if not file.filename.lower().endswith('.rdl'):
             return jsonify({'success': False, 'error': 'Only .rdl files are allowed'}), 400
 
-        # Get optional folder from form data
-        folder = request.form.get('folder', '').strip()
+        # Get optional folder_id from form data (new system)
+        folder_id = request.form.get('folder_id', '').strip()
+        folder_id = int(folder_id) if folder_id else None
 
         # Sanitize filename
         filename = os.path.basename(file.filename)
 
-        # Determine save path
-        if folder:
-            save_dir = os.path.join(REPORTS_DIR, folder)
-            os.makedirs(save_dir, exist_ok=True)
-            save_path = os.path.join(save_dir, filename)
-            rel_path = os.path.join(folder, filename)
-        else:
-            save_path = os.path.join(REPORTS_DIR, filename)
-            rel_path = filename
+        # Save file directly to reports directory
+        save_path = os.path.join(REPORTS_DIR, filename)
+        rel_path = filename
 
         # Save file
         file.save(save_path)
@@ -194,7 +189,8 @@ def upload_report():
         db.upsert_report({
             'file_path': rel_path,
             'display_name': os.path.splitext(filename)[0],
-            'folder': folder or None,
+            'folder': None,
+            'folder_id': folder_id,
             'parameters': json.dumps(report_info.get('parameters', [])),
             'datasources': json.dumps(report_info.get('datasources', []))
         })
@@ -339,6 +335,175 @@ def export_pdf(report_id):
             download_name=f"{report['display_name']}.pdf",
             mimetype='application/pdf'
         )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+# ============== Folders API ==============
+
+@app.route('/api/folders', methods=['GET'])
+def list_folders():
+    try:
+        folders = db.get_all_folders()
+        uncategorized_count = db.get_uncategorized_count()
+        return jsonify({
+            'success': True,
+            'folders': folders,
+            'uncategorized_count': uncategorized_count
+        })
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders', methods=['POST'])
+def create_folder():
+    try:
+        data = request.json
+        if not data.get('name'):
+            return jsonify({'success': False, 'error': 'Folder name is required'}), 400
+
+        folder = db.create_folder(data)
+        return jsonify({'success': True, 'folder': folder})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>', methods=['GET'])
+def get_folder(folder_id):
+    try:
+        folder = db.get_folder_by_id(folder_id)
+        if not folder:
+            return jsonify({'success': False, 'error': 'Folder not found'}), 404
+
+        path = db.get_folder_path(folder_id)
+        return jsonify({'success': True, 'folder': folder, 'path': path})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>', methods=['PUT'])
+def update_folder(folder_id):
+    try:
+        folder = db.get_folder_by_id(folder_id)
+        if not folder:
+            return jsonify({'success': False, 'error': 'Folder not found'}), 404
+
+        data = request.json
+        db.update_folder(folder_id, data)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>', methods=['DELETE'])
+def delete_folder(folder_id):
+    try:
+        folder = db.get_folder_by_id(folder_id)
+        if not folder:
+            return jsonify({'success': False, 'error': 'Folder not found'}), 404
+
+        db.delete_folder(folder_id)
+        return jsonify({'success': True, 'message': 'Folder deleted'})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>/move', methods=['POST'])
+def move_folder(folder_id):
+    try:
+        folder = db.get_folder_by_id(folder_id)
+        if not folder:
+            return jsonify({'success': False, 'error': 'Folder not found'}), 404
+
+        data = request.json
+        new_parent_id = data.get('parent_id')
+
+        db.move_folder(folder_id, new_parent_id)
+        return jsonify({'success': True})
+    except ValueError as e:
+        return jsonify({'success': False, 'error': str(e)}), 400
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>/path', methods=['GET'])
+def get_folder_path(folder_id):
+    try:
+        path = db.get_folder_path(folder_id)
+        return jsonify({'success': True, 'path': path})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/<int:folder_id>/reports', methods=['GET'])
+def get_folder_reports(folder_id):
+    try:
+        include_subfolders = request.args.get('include_subfolders', 'false').lower() == 'true'
+        reports = db.get_reports_by_folder(folder_id, include_subfolders)
+        return jsonify({'success': True, 'reports': reports})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/reorder', methods=['POST'])
+def reorder_folders():
+    try:
+        data = request.json
+        orders = data.get('orders', [])  # [(folder_id, sort_order), ...]
+        db.reorder_folders(orders)
+        return jsonify({'success': True})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/folders/migrate', methods=['POST'])
+def migrate_folders():
+    """Migrate text-based folders to new folder system"""
+    try:
+        count = db.migrate_text_folders()
+        return jsonify({'success': True, 'migrated_count': count})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/reports/move', methods=['POST'])
+def move_reports():
+    """Move multiple reports to a folder"""
+    try:
+        data = request.json
+        report_ids = data.get('report_ids', [])
+        folder_id = data.get('folder_id')  # None = uncategorized
+
+        if not report_ids:
+            return jsonify({'success': False, 'error': 'No reports specified'}), 400
+
+        count = db.move_reports_to_folder(report_ids, folder_id)
+        return jsonify({'success': True, 'moved_count': count})
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/reports/bulk-delete', methods=['POST'])
+def bulk_delete_reports():
+    """Delete multiple reports"""
+    try:
+        data = request.json
+        report_ids = data.get('report_ids', [])
+
+        if not report_ids:
+            return jsonify({'success': False, 'error': 'No reports specified'}), 400
+
+        deleted = 0
+        for report_id in report_ids:
+            report = db.get_report_by_id(report_id)
+            if report:
+                file_path = os.path.join(REPORTS_DIR, report['file_path'])
+                if os.path.exists(file_path):
+                    os.remove(file_path)
+                db.delete_report(report_id)
+                deleted += 1
+
+        return jsonify({'success': True, 'deleted_count': deleted})
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500
 

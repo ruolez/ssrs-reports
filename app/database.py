@@ -56,17 +56,59 @@ class PostgreSQLManager:
                     )
                 ''')
 
+                # Folders table for hierarchical organization
+                cur.execute('''
+                    CREATE TABLE IF NOT EXISTS folders (
+                        id SERIAL PRIMARY KEY,
+                        name VARCHAR(100) NOT NULL,
+                        slug VARCHAR(100) NOT NULL,
+                        parent_id INTEGER REFERENCES folders(id) ON DELETE CASCADE,
+                        description TEXT,
+                        color VARCHAR(7) DEFAULT '#207176',
+                        icon VARCHAR(50) DEFAULT 'folder',
+                        sort_order INTEGER DEFAULT 0,
+                        created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+                        updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+                    )
+                ''')
+
+                # Add unique constraint for slug within parent
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM pg_constraint WHERE conname = 'folders_parent_slug_unique'
+                        ) THEN
+                            ALTER TABLE folders ADD CONSTRAINT folders_parent_slug_unique UNIQUE (parent_id, slug);
+                        END IF;
+                    END $$;
+                ''')
+
                 cur.execute('''
                     CREATE TABLE IF NOT EXISTS reports (
                         id SERIAL PRIMARY KEY,
                         file_path VARCHAR(500) UNIQUE NOT NULL,
                         display_name VARCHAR(255) NOT NULL,
                         folder VARCHAR(255),
+                        folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL,
                         parameters JSONB,
                         datasources JSONB,
                         last_scanned TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
                         created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
                     )
+                ''')
+
+                # Add folder_id column if it doesn't exist (for existing databases)
+                cur.execute('''
+                    DO $$
+                    BEGIN
+                        IF NOT EXISTS (
+                            SELECT 1 FROM information_schema.columns
+                            WHERE table_name = 'reports' AND column_name = 'folder_id'
+                        ) THEN
+                            ALTER TABLE reports ADD COLUMN folder_id INTEGER REFERENCES folders(id) ON DELETE SET NULL;
+                        END IF;
+                    END $$;
                 ''')
 
                 cur.execute('''
@@ -208,7 +250,12 @@ class PostgreSQLManager:
         conn = self._get_connection()
         try:
             with conn.cursor() as cur:
-                cur.execute('SELECT * FROM reports ORDER BY folder, display_name')
+                cur.execute('''
+                    SELECT r.*, f.name AS folder_name, f.color AS folder_color
+                    FROM reports r
+                    LEFT JOIN folders f ON r.folder_id = f.id
+                    ORDER BY f.name NULLS LAST, r.display_name
+                ''')
                 return [dict(row) for row in cur.fetchall()]
         finally:
             conn.close()
@@ -228,12 +275,13 @@ class PostgreSQLManager:
         try:
             with conn.cursor() as cur:
                 cur.execute('''
-                    INSERT INTO reports (file_path, display_name, folder, parameters, datasources, last_scanned)
-                    VALUES (%s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
+                    INSERT INTO reports (file_path, display_name, folder, folder_id, parameters, datasources, last_scanned)
+                    VALUES (%s, %s, %s, %s, %s, %s, CURRENT_TIMESTAMP)
                     ON CONFLICT (file_path)
                     DO UPDATE SET
                         display_name = EXCLUDED.display_name,
                         folder = EXCLUDED.folder,
+                        folder_id = EXCLUDED.folder_id,
                         parameters = EXCLUDED.parameters,
                         datasources = EXCLUDED.datasources,
                         last_scanned = CURRENT_TIMESTAMP
@@ -241,6 +289,7 @@ class PostgreSQLManager:
                     data['file_path'],
                     data['display_name'],
                     data.get('folder'),
+                    data.get('folder_id'),
                     data.get('parameters', '[]'),
                     data.get('datasources', '[]')
                 ))
@@ -254,6 +303,384 @@ class PostgreSQLManager:
             with conn.cursor() as cur:
                 cur.execute('DELETE FROM reports WHERE id = %s', (report_id,))
                 conn.commit()
+        finally:
+            conn.close()
+
+    def move_reports_to_folder(self, report_ids, folder_id):
+        """Move multiple reports to a folder"""
+        if not report_ids:
+            return 0
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    UPDATE reports SET folder_id = %s
+                    WHERE id = ANY(%s)
+                ''', (folder_id, report_ids))
+                conn.commit()
+                return cur.rowcount
+        finally:
+            conn.close()
+
+    def get_reports_by_folder(self, folder_id, include_subfolders=False):
+        """Get reports in a folder, optionally including subfolders"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                if folder_id is None:
+                    # Root level - uncategorized reports
+                    cur.execute('''
+                        SELECT r.*, NULL AS folder_name, NULL AS folder_color
+                        FROM reports r WHERE folder_id IS NULL ORDER BY display_name
+                    ''')
+                elif include_subfolders:
+                    # Include all descendants
+                    cur.execute('''
+                        WITH RECURSIVE folder_tree AS (
+                            SELECT id FROM folders WHERE id = %s
+                            UNION ALL
+                            SELECT f.id FROM folders f
+                            JOIN folder_tree ft ON f.parent_id = ft.id
+                        )
+                        SELECT r.*, fld.name AS folder_name, fld.color AS folder_color
+                        FROM reports r
+                        LEFT JOIN folders fld ON r.folder_id = fld.id
+                        WHERE r.folder_id IN (SELECT id FROM folder_tree)
+                        ORDER BY r.display_name
+                    ''', (folder_id,))
+                else:
+                    cur.execute('''
+                        SELECT r.*, f.name AS folder_name, f.color AS folder_color
+                        FROM reports r
+                        LEFT JOIN folders f ON r.folder_id = f.id
+                        WHERE r.folder_id = %s ORDER BY r.display_name
+                    ''', (folder_id,))
+                return [dict(row) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    # ============== Folders ==============
+
+    def _generate_slug(self, name):
+        """Generate URL-friendly slug from name"""
+        import re
+        slug = name.lower().strip()
+        slug = re.sub(r'[^\w\s-]', '', slug)
+        slug = re.sub(r'[-\s]+', '-', slug)
+        return slug[:100]
+
+    def get_all_folders(self):
+        """Get all folders with hierarchy info and report counts"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    WITH RECURSIVE folder_tree AS (
+                        SELECT id, name, slug, parent_id, description, color, icon,
+                               sort_order, created_at, updated_at, 0 as depth,
+                               ARRAY[sort_order, id] as path
+                        FROM folders WHERE parent_id IS NULL
+                        UNION ALL
+                        SELECT f.id, f.name, f.slug, f.parent_id, f.description,
+                               f.color, f.icon, f.sort_order, f.created_at, f.updated_at,
+                               ft.depth + 1, ft.path || ARRAY[f.sort_order, f.id]
+                        FROM folders f
+                        JOIN folder_tree ft ON f.parent_id = ft.id
+                    )
+                    SELECT ft.*,
+                           COALESCE((SELECT COUNT(*) FROM reports r WHERE r.folder_id = ft.id), 0) as report_count,
+                           COALESCE((SELECT COUNT(*) FROM folders f WHERE f.parent_id = ft.id), 0) as child_count
+                    FROM folder_tree ft
+                    ORDER BY path
+                ''')
+                return [dict(row) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    def get_folder_by_id(self, folder_id):
+        """Get single folder with report count"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    SELECT f.*,
+                           COALESCE((SELECT COUNT(*) FROM reports r WHERE r.folder_id = f.id), 0) as report_count,
+                           COALESCE((SELECT COUNT(*) FROM folders c WHERE c.parent_id = f.id), 0) as child_count
+                    FROM folders f
+                    WHERE f.id = %s
+                ''', (folder_id,))
+                row = cur.fetchone()
+                return dict(row) if row else None
+        finally:
+            conn.close()
+
+    def create_folder(self, data):
+        """Create a new folder"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                name = data['name'].strip()
+                slug = self._generate_slug(name)
+                parent_id = data.get('parent_id')
+
+                # Ensure unique slug within parent
+                base_slug = slug
+                counter = 1
+                while True:
+                    cur.execute('''
+                        SELECT 1 FROM folders
+                        WHERE slug = %s AND (parent_id = %s OR (parent_id IS NULL AND %s IS NULL))
+                    ''', (slug, parent_id, parent_id))
+                    if not cur.fetchone():
+                        break
+                    slug = f"{base_slug}-{counter}"
+                    counter += 1
+
+                # Get next sort_order
+                cur.execute('''
+                    SELECT COALESCE(MAX(sort_order), 0) + 1 AS next_order
+                    FROM folders WHERE parent_id = %s OR (parent_id IS NULL AND %s IS NULL)
+                ''', (parent_id, parent_id))
+                sort_order = cur.fetchone()['next_order']
+
+                cur.execute('''
+                    INSERT INTO folders (name, slug, parent_id, description, color, icon, sort_order)
+                    VALUES (%s, %s, %s, %s, %s, %s, %s)
+                    RETURNING id, name, slug, parent_id, description, color, icon, sort_order, created_at, updated_at
+                ''', (
+                    name,
+                    slug,
+                    parent_id if parent_id else None,
+                    data.get('description', ''),
+                    data.get('color', '#207176'),
+                    data.get('icon', 'folder'),
+                    sort_order
+                ))
+                conn.commit()
+                row = cur.fetchone()
+                return dict(row)
+        finally:
+            conn.close()
+
+    def update_folder(self, folder_id, data):
+        """Update folder properties"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                fields = []
+                values = []
+
+                if 'name' in data:
+                    name = data['name'].strip()
+                    fields.append('name = %s')
+                    values.append(name)
+                    # Update slug too
+                    slug = self._generate_slug(name)
+                    # Check uniqueness
+                    cur.execute('SELECT parent_id FROM folders WHERE id = %s', (folder_id,))
+                    parent_id = cur.fetchone()['parent_id']
+                    cur.execute('''
+                        SELECT 1 FROM folders
+                        WHERE slug = %s AND id != %s AND (parent_id = %s OR (parent_id IS NULL AND %s IS NULL))
+                    ''', (slug, folder_id, parent_id, parent_id))
+                    if not cur.fetchone():
+                        fields.append('slug = %s')
+                        values.append(slug)
+
+                if 'description' in data:
+                    fields.append('description = %s')
+                    values.append(data['description'])
+                if 'color' in data:
+                    fields.append('color = %s')
+                    values.append(data['color'])
+                if 'icon' in data:
+                    fields.append('icon = %s')
+                    values.append(data['icon'])
+
+                if not fields:
+                    return
+
+                fields.append('updated_at = CURRENT_TIMESTAMP')
+                values.append(folder_id)
+
+                cur.execute(f'''
+                    UPDATE folders SET {', '.join(fields)}
+                    WHERE id = %s
+                ''', values)
+                conn.commit()
+        finally:
+            conn.close()
+
+    def delete_folder(self, folder_id):
+        """Delete folder - moves orphaned reports to root (null folder_id)"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Get all descendant folder IDs
+                cur.execute('''
+                    WITH RECURSIVE folder_tree AS (
+                        SELECT id FROM folders WHERE id = %s
+                        UNION ALL
+                        SELECT f.id FROM folders f
+                        JOIN folder_tree ft ON f.parent_id = ft.id
+                    )
+                    SELECT id FROM folder_tree
+                ''', (folder_id,))
+                folder_ids = [row['id'] for row in cur.fetchall()]
+
+                # Move all reports in these folders to root
+                if folder_ids:
+                    cur.execute('''
+                        UPDATE reports SET folder_id = NULL
+                        WHERE folder_id = ANY(%s)
+                    ''', (folder_ids,))
+
+                # Delete folder (cascade will delete children)
+                cur.execute('DELETE FROM folders WHERE id = %s', (folder_id,))
+                conn.commit()
+        finally:
+            conn.close()
+
+    def move_folder(self, folder_id, new_parent_id):
+        """Move folder to new parent with cycle detection"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Prevent moving to self
+                if folder_id == new_parent_id:
+                    raise ValueError("Cannot move folder to itself")
+
+                # Check for cycle - ensure new_parent is not a descendant
+                if new_parent_id:
+                    cur.execute('''
+                        WITH RECURSIVE folder_tree AS (
+                            SELECT id FROM folders WHERE id = %s
+                            UNION ALL
+                            SELECT f.id FROM folders f
+                            JOIN folder_tree ft ON f.parent_id = ft.id
+                        )
+                        SELECT 1 FROM folder_tree WHERE id = %s
+                    ''', (folder_id, new_parent_id))
+                    if cur.fetchone():
+                        raise ValueError("Cannot move folder to its own descendant")
+
+                # Get current folder info for slug uniqueness check
+                cur.execute('SELECT slug FROM folders WHERE id = %s', (folder_id,))
+                slug = cur.fetchone()['slug']
+
+                # Check slug uniqueness in new parent
+                cur.execute('''
+                    SELECT 1 FROM folders
+                    WHERE slug = %s AND id != %s AND (parent_id = %s OR (parent_id IS NULL AND %s IS NULL))
+                ''', (slug, folder_id, new_parent_id, new_parent_id))
+                if cur.fetchone():
+                    # Append number to make unique
+                    base_slug = slug
+                    counter = 1
+                    while True:
+                        new_slug = f"{base_slug}-{counter}"
+                        cur.execute('''
+                            SELECT 1 FROM folders
+                            WHERE slug = %s AND (parent_id = %s OR (parent_id IS NULL AND %s IS NULL))
+                        ''', (new_slug, new_parent_id, new_parent_id))
+                        if not cur.fetchone():
+                            slug = new_slug
+                            break
+                        counter += 1
+
+                # Update parent
+                cur.execute('''
+                    UPDATE folders SET parent_id = %s, slug = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE id = %s
+                ''', (new_parent_id if new_parent_id else None, slug, folder_id))
+                conn.commit()
+        finally:
+            conn.close()
+
+    def get_folder_path(self, folder_id):
+        """Get path from root to folder (for breadcrumbs)"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('''
+                    WITH RECURSIVE folder_path AS (
+                        SELECT id, name, parent_id, 1 as level
+                        FROM folders WHERE id = %s
+                        UNION ALL
+                        SELECT f.id, f.name, f.parent_id, fp.level + 1
+                        FROM folders f
+                        JOIN folder_path fp ON f.id = fp.parent_id
+                    )
+                    SELECT id, name FROM folder_path ORDER BY level DESC
+                ''', (folder_id,))
+                return [dict(row) for row in cur.fetchall()]
+        finally:
+            conn.close()
+
+    def reorder_folders(self, folder_orders):
+        """Update sort_order for multiple folders: [(id, order), ...]"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                for folder_id, order in folder_orders:
+                    cur.execute('''
+                        UPDATE folders SET sort_order = %s, updated_at = CURRENT_TIMESTAMP
+                        WHERE id = %s
+                    ''', (order, folder_id))
+                conn.commit()
+        finally:
+            conn.close()
+
+    def get_uncategorized_count(self):
+        """Get count of reports with no folder"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                cur.execute('SELECT COUNT(*) as count FROM reports WHERE folder_id IS NULL')
+                return cur.fetchone()['count']
+        finally:
+            conn.close()
+
+    def migrate_text_folders(self):
+        """Migrate existing text-based folder column to folder_id references"""
+        conn = self._get_connection()
+        try:
+            with conn.cursor() as cur:
+                # Get distinct folder names that haven't been migrated
+                cur.execute('''
+                    SELECT DISTINCT folder FROM reports
+                    WHERE folder IS NOT NULL AND folder != '' AND folder_id IS NULL
+                ''')
+                folders = [row['folder'] for row in cur.fetchall()]
+
+                for folder_name in folders:
+                    # Create folder if doesn't exist
+                    slug = self._generate_slug(folder_name)
+                    cur.execute('''
+                        INSERT INTO folders (name, slug, parent_id)
+                        VALUES (%s, %s, NULL)
+                        ON CONFLICT (parent_id, slug) DO NOTHING
+                        RETURNING id
+                    ''', (folder_name, slug))
+                    result = cur.fetchone()
+
+                    if result:
+                        folder_id = result['id']
+                    else:
+                        # Already exists, get the id
+                        cur.execute('''
+                            SELECT id FROM folders WHERE slug = %s AND parent_id IS NULL
+                        ''', (slug,))
+                        folder_id = cur.fetchone()['id']
+
+                    # Update reports with this folder name
+                    cur.execute('''
+                        UPDATE reports SET folder_id = %s
+                        WHERE folder = %s AND folder_id IS NULL
+                    ''', (folder_id, folder_name))
+
+                conn.commit()
+                return len(folders)
         finally:
             conn.close()
 

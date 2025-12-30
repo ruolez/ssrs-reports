@@ -3,24 +3,112 @@
 {% block title %}Reports - RDL Report Viewer{% endblock %}
 
 {% block content %}
-<div class="page-header">
-    <h1 class="page-title">Reports</h1>
-    <div class="page-actions">
-        <div class="search-box">
-            <i data-lucide="search" class="search-icon"></i>
-            <input type="text" id="searchInput" class="search-input" placeholder="Search reports...">
+<div class="layout-with-sidebar" id="layoutContainer">
+    <!-- Sidebar Overlay (mobile) -->
+    <div class="sidebar-overlay" id="sidebarOverlay" onclick="toggleSidebar()"></div>
+
+    <!-- Sidebar -->
+    <aside class="sidebar" id="sidebar">
+        <div class="sidebar-header">
+            <span class="sidebar-title">Folders</span>
         </div>
-        <button class="btn btn-primary" onclick="openModal('uploadModal')">
-            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload
-        </button>
+        <div class="sidebar-search">
+            <div class="search-box">
+                <i data-lucide="search" class="search-icon"></i>
+                <input type="text" id="folderSearchInput" class="search-input" placeholder="Search folders...">
+            </div>
+        </div>
+        <div class="sidebar-content" id="folderTreeContainer">
+            <!-- Folder tree rendered by JS -->
+        </div>
+        <div class="sidebar-footer">
+            <button class="btn btn-secondary" onclick="openFolderModal()">
+                <i data-lucide="folder-plus" style="width:16px;height:16px;"></i> New Folder
+            </button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <div class="main-content">
+        <!-- Breadcrumb -->
+        <nav class="breadcrumb" id="breadcrumb">
+            <span class="breadcrumb-item current">All Reports</span>
+        </nav>
+
+        <!-- Page Header -->
+        <div class="page-header">
+            <h1 class="page-title" id="pageTitle">All Reports</h1>
+            <div class="page-actions">
+                <button class="sidebar-toggle" onclick="toggleSidebar()" title="Toggle Sidebar">
+                    <i data-lucide="panel-left"></i>
+                </button>
+                <div class="search-box">
+                    <i data-lucide="search" class="search-icon"></i>
+                    <input type="text" id="searchInput" class="search-input" placeholder="Search reports...">
+                </div>
+                <button class="btn btn-primary" onclick="openModal('uploadModal')">
+                    <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload
+                </button>
+            </div>
+        </div>
+
+        <!-- Bulk Actions Bar (hidden by default) -->
+        <div class="bulk-actions-bar" id="bulkActionsBar" style="display:none;">
+            <span class="selected-count" id="selectedCount">0 selected</span>
+            <button class="btn btn-sm" onclick="openMoveModal()">
+                <i data-lucide="folder" style="width:14px;height:14px;"></i> Move
+            </button>
+            <button class="btn btn-sm btn-danger" onclick="bulkDelete()">
+                <i data-lucide="trash-2" style="width:14px;height:14px;"></i> Delete
+            </button>
+            <button class="btn btn-sm" onclick="clearSelection()">
+                Cancel
+            </button>
+        </div>
+
+        <!-- Reports Container -->
+        <div id="reportsContainer">
+            <div class="empty-state">
+                <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
+                <div class="empty-state-title">No reports found</div>
+                <div class="empty-state-text">Upload RDL files to get started.</div>
+            </div>
+        </div>
     </div>
 </div>
 
-<div id="reportsContainer">
-    <div class="empty-state">
-        <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
-        <div class="empty-state-title">No reports found</div>
-        <div class="empty-state-text">Upload RDL files to get started.</div>
+<!-- Context Menu for Folders -->
+<div class="context-menu" id="folderContextMenu">
+    <div class="context-menu-item" onclick="handleContextMenuAction('open')">
+        <i data-lucide="folder-open"></i> Open
+    </div>
+    <div class="context-menu-item" onclick="handleContextMenuAction('rename')">
+        <i data-lucide="pencil"></i> Rename
+    </div>
+    <div class="context-menu-item" onclick="handleContextMenuAction('edit')">
+        <i data-lucide="settings"></i> Properties
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item" onclick="handleContextMenuAction('new-subfolder')">
+        <i data-lucide="folder-plus"></i> New Subfolder
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item text-error" onclick="handleContextMenuAction('delete')">
+        <i data-lucide="trash-2"></i> Delete
+    </div>
+</div>
+
+<!-- Context Menu for Reports -->
+<div class="context-menu" id="reportContextMenu">
+    <div class="context-menu-item" onclick="handleReportContextAction('open')">
+        <i data-lucide="external-link"></i> Open Report
+    </div>
+    <div class="context-menu-item" onclick="handleReportContextAction('move')">
+        <i data-lucide="folder"></i> Move to Folder
+    </div>
+    <div class="context-menu-divider"></div>
+    <div class="context-menu-item text-error" onclick="handleReportContextAction('delete')">
+        <i data-lucide="trash-2"></i> Delete
     </div>
 </div>
 
@@ -44,8 +132,10 @@
                     <div id="fileList" class="file-list"></div>
                 </div>
                 <div class="form-group">
-                    <label class="form-label">Folder (optional)</label>
-                    <input type="text" class="form-input" id="uploadFolder" placeholder="e.g., Inventory">
+                    <label class="form-label">Folder</label>
+                    <select class="form-select" id="uploadFolderId">
+                        <option value="">No folder (root)</option>
+                    </select>
                     <small class="text-secondary">Organize reports into folders</small>
                 </div>
             </form>
@@ -53,6 +143,87 @@
         <div class="modal-footer">
             <button class="btn btn-secondary" onclick="closeModal('uploadModal')">Cancel</button>
             <button class="btn btn-primary" id="uploadBtn" onclick="uploadFiles()" disabled>Upload</button>
+        </div>
+    </div>
+</div>
+
+<!-- Folder Modal (Create/Edit) -->
+<div class="modal-overlay" id="folderModal">
+    <div class="modal">
+        <div class="modal-header">
+            <h3 class="modal-title" id="folderModalTitle">New Folder</h3>
+            <button class="modal-close" onclick="closeModal('folderModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <form id="folderForm">
+                <div class="form-group">
+                    <label class="form-label">Name *</label>
+                    <input type="text" class="form-input" id="folderName" placeholder="Folder name" required>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Parent Folder</label>
+                    <select class="form-select" id="folderParent">
+                        <option value="">Root (No Parent)</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Description</label>
+                    <textarea class="form-input" id="folderDescription" placeholder="Optional description" rows="2"></textarea>
+                </div>
+                <div class="form-row">
+                    <div class="form-group">
+                        <label class="form-label">Color</label>
+                        <div class="color-picker-wrapper">
+                            <input type="color" class="color-picker-input" id="folderColor" value="#207176">
+                            <span class="color-picker-value" id="folderColorValue">#207176</span>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <label class="form-label">Icon</label>
+                        <div class="icon-selector" id="iconSelector">
+                            <div class="icon-option selected" data-icon="folder" title="Folder">
+                                <i data-lucide="folder"></i>
+                            </div>
+                            <div class="icon-option" data-icon="briefcase" title="Briefcase">
+                                <i data-lucide="briefcase"></i>
+                            </div>
+                            <div class="icon-option" data-icon="bar-chart-2" title="Chart">
+                                <i data-lucide="bar-chart-2"></i>
+                            </div>
+                            <div class="icon-option" data-icon="file-text" title="Document">
+                                <i data-lucide="file-text"></i>
+                            </div>
+                            <div class="icon-option" data-icon="archive" title="Archive">
+                                <i data-lucide="archive"></i>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('folderModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="saveFolder()">Save</button>
+        </div>
+    </div>
+</div>
+
+<!-- Move to Folder Modal -->
+<div class="modal-overlay" id="moveModal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Move to Folder</h3>
+            <button class="modal-close" onclick="closeModal('moveModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p class="text-secondary mb-4" id="moveDescription">Select destination folder:</p>
+            <div class="folder-select-list" id="folderSelectList">
+                <!-- Populated by JS -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('moveModal')">Cancel</button>
+            <button class="btn btn-primary" onclick="confirmMove()">Move</button>
         </div>
     </div>
 </div>
@@ -74,8 +245,47 @@
         </div>
     </div>
 </div>
+
+<!-- Bulk Delete Confirmation Modal -->
+<div class="modal-overlay" id="bulkDeleteModal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Reports</h3>
+            <button class="modal-close" onclick="closeModal('bulkDeleteModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="bulkDeleteCount">0</strong> selected reports?</p>
+            <p class="text-secondary">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('bulkDeleteModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmBulkDelete()">Delete All</button>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Folder Confirmation Modal -->
+<div class="modal-overlay" id="deleteFolderModal">
+    <div class="modal" style="max-width: 400px;">
+        <div class="modal-header">
+            <h3 class="modal-title">Delete Folder</h3>
+            <button class="modal-close" onclick="closeModal('deleteFolderModal')">&times;</button>
+        </div>
+        <div class="modal-body">
+            <p>Are you sure you want to delete <strong id="deleteFolderName"></strong>?</p>
+            <p class="text-secondary">Reports in this folder will be moved to Uncategorized.</p>
+        </div>
+        <div class="modal-footer">
+            <button class="btn btn-secondary" onclick="closeModal('deleteFolderModal')">Cancel</button>
+            <button class="btn btn-danger" onclick="confirmDeleteFolder()">Delete</button>
+        </div>
+    </div>
+</div>
 {% endblock %}
 
 {% block scripts %}
+<script src="{{ url_for('static', filename='js/folder-tree.js') }}"></script>
+<script src="{{ url_for('static', filename='js/context-menu.js') }}"></script>
+<script src="{{ url_for('static', filename='js/drag-drop.js') }}"></script>
 <script src="{{ url_for('static', filename='js/reports.js') }}"></script>
 {% endblock %}

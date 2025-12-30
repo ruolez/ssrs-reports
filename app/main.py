@@ -323,13 +323,25 @@ def get_parameter_options(report_id):
         if not connection:
             return jsonify({'success': False, 'error': f'No mapping for datasource {datasource_name}'}), 400
 
+        # Get server details - use sql_server if linked, otherwise use legacy fields
+        if connection.get('sql_server_id') and connection.get('server_address'):
+            server = connection['server_address']
+            port = connection.get('server_port', 1433)
+            username = connection['server_username']
+            password = db.decrypt_password(connection['server_password_encrypted'])
+        else:
+            server = connection['server']
+            port = connection.get('port', 1433)
+            username = connection['username']
+            password = db.decrypt_password(connection['password_encrypted'])
+
         # Execute the dataset query
         mssql = MSSQLManager(
-            server=connection['server'],
-            port=connection.get('port', 1433),
+            server=server,
+            port=port,
             database=connection['database_name'],
-            username=connection['username'],
-            password=db.decrypt_password(connection['password_encrypted'])
+            username=username,
+            password=password
         )
 
         query = dataset.get('query', '')

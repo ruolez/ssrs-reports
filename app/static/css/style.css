@@ -146,12 +146,23 @@ a:hover {
     padding: 24px;
 }
 
+/* Viewer page - maximize width usage */
+body:has(.viewer-toolbar) .container {
+    max-width: 100%;
+    padding: 12px 16px;
+}
+
 /* ============== Page Header ============== */
 .page-header {
     display: flex;
     align-items: center;
     justify-content: space-between;
-    margin-bottom: 24px;
+    margin-bottom: 16px;
+}
+
+/* Tighter spacing for viewer page */
+body:has(.viewer-toolbar) .page-header {
+    margin-bottom: 8px;
     flex-wrap: wrap;
     gap: 16px;
 }
@@ -542,12 +553,12 @@ tbody tr:last-child td {
 .param-form {
     display: flex;
     flex-wrap: wrap;
-    gap: 16px;
+    gap: 12px;
     align-items: flex-end;
-    padding: 16px;
+    padding: 10px 12px;
     background-color: var(--surface-elevated);
     border-radius: 8px;
-    margin-bottom: 20px;
+    margin-bottom: 8px;
 }
 
 .param-group {
@@ -844,11 +855,11 @@ tbody tr:last-child td {
     flex-wrap: wrap;
     align-items: center;
     gap: 8px;
-    padding: 10px 16px;
+    padding: 8px 12px;
     background-color: var(--surface);
     border: 1px solid var(--outline);
-    border-radius: 10px;
-    margin-bottom: 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
 }
 
 .toolbar-group {
@@ -944,12 +955,12 @@ tbody tr:last-child td {
     justify-content: space-between;
     align-items: flex-start;
     flex-wrap: wrap;
-    gap: 16px;
-    padding: 16px 20px;
+    gap: 10px;
+    padding: 10px 12px;
     background-color: var(--surface);
     border: 1px solid var(--outline);
-    border-radius: 10px;
-    margin-bottom: 16px;
+    border-radius: 8px;
+    margin-bottom: 8px;
 }
 
 .report-header-main {
@@ -1004,11 +1015,11 @@ tbody tr:last-child td {
     display: flex;
     align-items: center;
     gap: 12px;
-    padding: 12px 16px;
+    padding: 10px 12px;
     background-color: var(--surface-elevated);
     border: 1px solid var(--outline);
     border-radius: 8px;
-    margin-bottom: 16px;
+    margin-bottom: 8px;
     animation: slideDown 0.2s ease;
 }
 
@@ -1125,11 +1136,11 @@ tbody tr:last-child td {
     align-items: center;
     flex-wrap: wrap;
     gap: 12px;
-    padding: 10px 16px;
+    padding: 8px 12px;
     background-color: var(--surface);
     border: 1px solid var(--outline);
     border-radius: 8px;
-    margin-top: 16px;
+    margin-top: 8px;
     font-size: 0.8125rem;
     color: var(--on-surface-secondary);
 }
@@ -1259,6 +1270,12 @@ tbody tr:last-child td {
 
 .report-table {
     font-size: var(--viewer-font-size, 14px);
+}
+
+.report-table th,
+.report-table td,
+.report-table a {
+    font-size: inherit;
 }
 
 .report-table th {
@@ -1405,12 +1422,29 @@ tbody tr:last-child td {
     bottom: 0;
     z-index: 9999;
     background-color: var(--background);
-    padding: 20px;
+    padding: 8px;
     overflow: auto;
 }
 
 .viewer-fullscreen .navbar {
     display: none;
+}
+
+.viewer-fullscreen .container {
+    padding: 0;
+}
+
+.viewer-fullscreen .viewer-toolbar,
+.viewer-fullscreen .report-header-section,
+.viewer-fullscreen .report-search-bar,
+.viewer-fullscreen .report-status-bar {
+    margin-bottom: 6px;
+    margin-top: 0;
+    border-radius: 6px;
+}
+
+.viewer-fullscreen .report-status-bar {
+    margin-top: 6px;
 }
 
 /* ============== Viewer Responsive ============== */

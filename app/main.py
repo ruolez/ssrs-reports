@@ -1,6 +1,9 @@
 import os
+import io
+import csv
 import json
-from flask import Flask, render_template, request, jsonify, send_file, make_response
+import time
+from flask import Flask, render_template, request, jsonify, send_file, make_response, Response
 from .database import PostgreSQLManager, MSSQLManager
 from .rdl.parser import RdlParser
 from .rdl.executor import ReportExecutor
@@ -178,6 +181,8 @@ def delete_report(report_id):
 @app.route('/api/reports/<int:report_id>/execute', methods=['POST'])
 def execute_report(report_id):
     try:
+        start_time = time.time()
+
         report = db.get_report_by_id(report_id)
         if not report:
             return jsonify({'success': False, 'error': 'Report not found'}), 404
@@ -204,10 +209,14 @@ def execute_report(report_id):
         renderer = ReportRenderer(report_def)
         html = renderer.render(data, sort_column, sort_direction)
 
+        # Calculate execution time in milliseconds
+        exec_time_ms = (time.time() - start_time) * 1000
+
         return jsonify({
             'success': True,
             'html': html,
             'row_count': len(data.get('primary', [])),
+            'exec_time_ms': round(exec_time_ms, 2),
             'parameters': report_def.get('parameters', [])
         })
     except Exception as e:
@@ -279,6 +288,75 @@ def export_pdf(report_id):
             as_attachment=True,
             download_name=f"{report['display_name']}.pdf",
             mimetype='application/pdf'
+        )
+    except Exception as e:
+        return jsonify({'success': False, 'error': str(e)}), 500
+
+
+@app.route('/api/reports/<int:report_id>/export/csv', methods=['POST'])
+def export_csv(report_id):
+    try:
+        report = db.get_report_by_id(report_id)
+        if not report:
+            return jsonify({'success': False, 'error': 'Report not found'}), 404
+
+        params = request.json.get('parameters', {})
+
+        # Parse and execute
+        file_path = os.path.join(REPORTS_DIR, report['file_path'])
+        parser = RdlParser(file_path)
+        report_def = parser.parse()
+
+        mappings = db.get_all_mappings()
+        connections = db.get_all_connections()
+
+        executor = ReportExecutor(report_def, mappings, connections, db)
+        data = executor.execute(params)
+
+        # Get columns and rows
+        tablixes = report_def.get('tablixes', [])
+        if not tablixes:
+            return jsonify({'success': False, 'error': 'No data found'}), 400
+
+        tablix = tablixes[0]
+        columns = tablix.get('columns', [])
+        rows = data.get('primary', [])
+
+        # Create CSV in memory
+        output = io.StringIO()
+        writer = csv.writer(output)
+
+        # Write header row
+        headers = [col.get('header_text', f'Column {i}') for i, col in enumerate(columns)]
+        writer.writerow(headers)
+
+        # Write data rows
+        from .rdl.expression import evaluate_expression, ExpressionContext
+        lookup_tables = data.get('lookup_tables', {})
+
+        for row_idx, row in enumerate(rows):
+            context = ExpressionContext(row, row_idx + 1, lookup_tables)
+            row_data = []
+            for col in columns:
+                expression = col.get('field_expression', '')
+                value = evaluate_expression(expression, context)
+                # Format value for CSV
+                if value is None:
+                    row_data.append('')
+                elif isinstance(value, bool):
+                    row_data.append('Yes' if value else 'No')
+                else:
+                    row_data.append(str(value))
+            writer.writerow(row_data)
+
+        # Create response
+        output.seek(0)
+        return Response(
+            output.getvalue(),
+            mimetype='text/csv',
+            headers={
+                'Content-Disposition': f'attachment; filename="{report["display_name"]}.csv"'
+            }
         )
     except Exception as e:
         return jsonify({'success': False, 'error': str(e)}), 500

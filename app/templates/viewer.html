@@ -5,31 +5,195 @@
 {% block content %}
 <div class="page-header">
     <div>
-        <a href="/" class="text-secondary" style="font-size: 0.875rem;">← Back to Reports</a>
-        <h1 class="page-title" id="reportTitle">Loading...</h1>
+        <a href="/" class="text-secondary" style="font-size: 0.875rem;"><i data-lucide="arrow-left" style="width:14px;height:14px;display:inline;vertical-align:middle;"></i> Back to Reports</a>
     </div>
-    <div class="page-actions">
+</div>
+
+<!-- Professional Toolbar -->
+<div class="viewer-toolbar" role="toolbar" aria-label="Report viewer controls">
+    <!-- Zoom Controls -->
+    <div class="toolbar-group" role="group" aria-label="Zoom controls">
+        <button class="toolbar-btn toolbar-btn-icon" id="zoomOutBtn" title="Zoom Out (Ctrl+-)">
+            <i data-lucide="minus"></i>
+        </button>
+        <select class="toolbar-select" id="zoomSelect" title="Zoom Level">
+            <option value="50">50%</option>
+            <option value="75">75%</option>
+            <option value="100" selected>100%</option>
+            <option value="125">125%</option>
+            <option value="150">150%</option>
+            <option value="200">200%</option>
+        </select>
+        <button class="toolbar-btn toolbar-btn-icon" id="zoomInBtn" title="Zoom In (Ctrl++)">
+            <i data-lucide="plus"></i>
+        </button>
+        <div class="toolbar-separator"></div>
+        <button class="toolbar-btn" id="fitWidthBtn" title="Fit to Width">
+            <i data-lucide="maximize-2"></i>
+        </button>
+        <button class="toolbar-btn" id="actualSizeBtn" title="Actual Size (Ctrl+0)">
+            <i data-lucide="square"></i>
+        </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <!-- Font Size Controls -->
+    <div class="toolbar-group" role="group" aria-label="Font size controls">
+        <span class="toolbar-label">Font:</span>
+        <button class="toolbar-btn toolbar-btn-icon" id="fontDecreaseBtn" title="Decrease Font Size">
+            <i data-lucide="a-large-small"></i>
+        </button>
+        <select class="toolbar-select" id="fontSizeSelect" title="Font Size">
+            <option value="small">Small</option>
+            <option value="medium" selected>Medium</option>
+            <option value="large">Large</option>
+            <option value="xlarge">X-Large</option>
+        </select>
+        <button class="toolbar-btn toolbar-btn-icon" id="fontIncreaseBtn" title="Increase Font Size">
+            <i data-lucide="a-large-small"></i>
+        </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <!-- Action Buttons -->
+    <div class="toolbar-group" role="group" aria-label="Actions">
+        <button class="toolbar-btn" id="refreshBtn" title="Refresh Report">
+            <i data-lucide="refresh-cw"></i>
+            <span>Refresh</span>
+        </button>
+        <button class="toolbar-btn" id="printBtn" title="Print (Ctrl+P)">
+            <i data-lucide="printer"></i>
+            <span>Print</span>
+        </button>
+        <button class="toolbar-btn" id="fullscreenBtn" title="Full Screen (F11)">
+            <i data-lucide="maximize"></i>
+        </button>
+    </div>
+
+    <div class="toolbar-separator"></div>
+
+    <!-- Toggle Buttons -->
+    <div class="toolbar-group" role="group" aria-label="Panel toggles">
+        <button class="toolbar-btn" id="toggleParamsBtn" title="Toggle Parameters Panel">
+            <i data-lucide="sliders-horizontal"></i>
+            <span>Parameters</span>
+        </button>
+        <button class="toolbar-btn" id="toggleFiltersBtn" title="Toggle Column Filters">
+            <i data-lucide="filter"></i>
+            <span>Filters</span>
+            <span class="filter-badge hidden" id="filterBadge">0</span>
+        </button>
+        <button class="toolbar-btn" id="toggleSearchBtn" title="Search in Report (Ctrl+F)">
+            <i data-lucide="search"></i>
+            <span>Search</span>
+        </button>
+    </div>
+
+    <div class="toolbar-divider"></div>
+
+    <!-- Export Dropdown -->
+    <div class="toolbar-group">
         <div class="dropdown">
-            <button class="btn btn-secondary" id="exportBtn" disabled>
-                📥 Export
+            <button class="toolbar-btn" id="exportBtn" disabled title="Export Report">
+                <i data-lucide="download"></i>
+                <span>Export</span>
             </button>
             <div class="dropdown-menu" id="exportMenu">
-                <button class="dropdown-item" onclick="exportReport('excel')">📊 Excel (.xlsx)</button>
-                <button class="dropdown-item" onclick="exportReport('pdf')">📄 PDF</button>
+                <button class="dropdown-item" data-format="excel">
+                    <i data-lucide="file-spreadsheet" style="width:16px;height:16px;margin-right:8px;"></i>
+                    Excel (.xlsx)
+                </button>
+                <button class="dropdown-item" data-format="pdf">
+                    <i data-lucide="file-text" style="width:16px;height:16px;margin-right:8px;"></i>
+                    PDF
+                </button>
+                <button class="dropdown-item" data-format="csv">
+                    <i data-lucide="file" style="width:16px;height:16px;margin-right:8px;"></i>
+                    CSV
+                </button>
+                <button class="dropdown-item" data-format="clipboard">
+                    <i data-lucide="clipboard" style="width:16px;height:16px;margin-right:8px;"></i>
+                    Copy to Clipboard
+                </button>
             </div>
         </div>
     </div>
 </div>
 
+<!-- Search Bar (hidden by default) -->
+<div class="report-search-bar hidden" id="searchBar">
+    <div class="search-input-wrapper">
+        <i data-lucide="search"></i>
+        <input type="text" class="search-field" id="searchInput" placeholder="Find in report..." autocomplete="off">
+    </div>
+    <span class="search-results-count" id="searchResultsCount">0 of 0</span>
+    <button class="search-nav-btn" id="searchPrevBtn" title="Previous (Shift+Enter)" disabled>
+        <i data-lucide="chevron-up" style="width:14px;height:14px;"></i>
+    </button>
+    <button class="search-nav-btn" id="searchNextBtn" title="Next (Enter)" disabled>
+        <i data-lucide="chevron-down" style="width:14px;height:14px;"></i>
+    </button>
+    <button class="search-close-btn" id="searchCloseBtn" title="Close (Escape)">
+        <i data-lucide="x" style="width:16px;height:16px;"></i>
+    </button>
+</div>
+
+<!-- Parameter Form -->
 <div id="parameterForm" class="param-form hidden">
     <!-- Parameters will be inserted here -->
 </div>
 
-<div id="reportContent">
-    <div class="empty-state">
-        <div class="empty-state-icon">📊</div>
-        <div class="empty-state-title">Configure data sources</div>
-        <div class="empty-state-text">Please configure your SQL Server connections in <a href="/datasources">Data Sources</a> before running this report.</div>
+<!-- Report Header Section -->
+<div class="report-header-section" id="reportHeaderSection">
+    <div class="report-header-main">
+        <h1 class="report-header-title" id="reportTitle">Loading...</h1>
+        <p class="report-header-description" id="reportDescription"></p>
+    </div>
+    <div class="report-header-meta" id="reportMeta">
+        <span class="meta-badge" id="metaRowCount">
+            <i data-lucide="table-2"></i>
+            <span class="meta-badge-value">0</span> rows
+        </span>
+        <span class="meta-badge" id="metaExecTime">
+            <i data-lucide="zap"></i>
+            <span class="meta-badge-value">--</span>
+        </span>
+        <span class="meta-badge" id="metaTimestamp">
+            <i data-lucide="clock"></i>
+            <span class="meta-badge-value">--</span>
+        </span>
+    </div>
+</div>
+
+<!-- Report Content -->
+<div class="zoom-container" id="zoomContainer">
+    <div id="reportContent">
+        <div class="empty-state">
+            <div class="empty-state-icon"><i data-lucide="bar-chart-3" style="width:48px;height:48px;"></i></div>
+            <div class="empty-state-title">Configure data sources</div>
+            <div class="empty-state-text">Please configure your SQL Server connections in <a href="/datasources">Data Sources</a> before running this report.</div>
+        </div>
+    </div>
+</div>
+
+<!-- Status Bar -->
+<div class="report-status-bar" id="statusBar">
+    <div class="status-left">
+        <span class="status-item">Showing <strong id="statusRowCount">0</strong> rows</span>
+        <span class="status-item" id="statusFiltered" style="display:none;">
+            (<strong id="statusFilteredCount">0</strong> filtered)
+        </span>
+    </div>
+    <div class="status-center">
+        <span class="status-item" id="statusFilterInfo">No filters applied</span>
+    </div>
+    <div class="status-right">
+        <span class="status-item">Generated: <span id="statusTimestamp">--</span></span>
+        <button class="status-btn" id="scrollTopBtn" title="Scroll to Top">
+            <i data-lucide="arrow-up" style="width:12px;height:12px;"></i> Top
+        </button>
     </div>
 </div>
 
@@ -47,10 +211,11 @@
     background-color: var(--surface);
     border: 1px solid var(--outline);
     border-radius: 8px;
-    min-width: 160px;
+    min-width: 180px;
     box-shadow: 0 4px 12px var(--shadow);
     z-index: 100;
     display: none;
+    margin-top: 4px;
 }
 
 .dropdown-menu.show {
@@ -58,7 +223,8 @@
 }
 
 .dropdown-item {
-    display: block;
+    display: flex;
+    align-items: center;
     width: 100%;
     padding: 10px 16px;
     text-align: left;

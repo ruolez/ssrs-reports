@@ -831,3 +831,660 @@ tbody tr:last-child td {
         min-width: 100%;
     }
 }
+
+/* ============== Viewer CSS Custom Properties ============== */
+:root {
+    --viewer-zoom: 1;
+    --viewer-font-size: 14px;
+}
+
+/* ============== Viewer Toolbar ============== */
+.viewer-toolbar {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 8px;
+    padding: 10px 16px;
+    background-color: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.toolbar-group {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.toolbar-separator {
+    width: 1px;
+    height: 24px;
+    background-color: var(--outline);
+    margin: 0 8px;
+}
+
+.toolbar-divider {
+    flex: 1;
+    min-width: 16px;
+}
+
+.toolbar-btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    padding: 8px 12px;
+    border: 1px solid var(--outline);
+    border-radius: 6px;
+    background-color: var(--surface);
+    color: var(--on-surface);
+    font-size: 0.875rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    white-space: nowrap;
+}
+
+.toolbar-btn:hover {
+    background-color: var(--primary-light);
+    border-color: var(--primary);
+}
+
+.toolbar-btn:active {
+    transform: scale(0.97);
+}
+
+.toolbar-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.toolbar-btn.active {
+    background-color: var(--primary);
+    color: white;
+    border-color: var(--primary);
+}
+
+.toolbar-btn i {
+    width: 16px;
+    height: 16px;
+}
+
+.toolbar-btn-icon {
+    padding: 8px;
+    min-width: 36px;
+}
+
+.toolbar-select {
+    padding: 8px 12px;
+    border: 1px solid var(--outline);
+    border-radius: 6px;
+    background-color: var(--surface);
+    color: var(--on-surface);
+    font-size: 0.875rem;
+    cursor: pointer;
+    min-width: 80px;
+}
+
+.toolbar-select:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.toolbar-label {
+    font-size: 0.8125rem;
+    color: var(--on-surface-secondary);
+    margin-right: 4px;
+}
+
+/* ============== Report Header Section ============== */
+.report-header-section {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 16px;
+    padding: 16px 20px;
+    background-color: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 10px;
+    margin-bottom: 16px;
+}
+
+.report-header-main {
+    flex: 1;
+    min-width: 200px;
+}
+
+.report-header-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    color: var(--on-surface);
+    margin: 0 0 4px 0;
+}
+
+.report-header-description {
+    font-size: 0.875rem;
+    color: var(--on-surface-secondary);
+    margin: 0;
+}
+
+.report-header-meta {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    align-items: center;
+}
+
+.meta-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background-color: var(--surface-elevated);
+    border: 1px solid var(--outline);
+    border-radius: 20px;
+    font-size: 0.8125rem;
+    color: var(--on-surface);
+}
+
+.meta-badge i {
+    width: 14px;
+    height: 14px;
+    color: var(--primary);
+}
+
+.meta-badge-value {
+    font-weight: 600;
+}
+
+/* ============== Search Bar ============== */
+.report-search-bar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 12px 16px;
+    background-color: var(--surface-elevated);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    margin-bottom: 16px;
+    animation: slideDown 0.2s ease;
+}
+
+.report-search-bar.hidden {
+    display: none;
+}
+
+@keyframes slideDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+.search-input-wrapper {
+    flex: 1;
+    position: relative;
+    max-width: 400px;
+}
+
+.search-input-wrapper i {
+    position: absolute;
+    left: 12px;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 16px;
+    height: 16px;
+    color: var(--on-surface-secondary);
+}
+
+.report-search-bar .search-field {
+    width: 100%;
+    padding: 10px 12px 10px 40px;
+    border: 1px solid var(--outline);
+    border-radius: 6px;
+    font-size: 0.9375rem;
+    background-color: var(--surface);
+    color: var(--on-surface);
+}
+
+.report-search-bar .search-field:focus {
+    outline: none;
+    border-color: var(--primary);
+    box-shadow: 0 0 0 3px var(--primary-light);
+}
+
+.search-results-count {
+    font-size: 0.875rem;
+    color: var(--on-surface-secondary);
+    white-space: nowrap;
+    min-width: 60px;
+    text-align: center;
+}
+
+.search-nav-btn {
+    padding: 6px 10px;
+    border: 1px solid var(--outline);
+    border-radius: 4px;
+    background-color: var(--surface);
+    color: var(--on-surface);
+    cursor: pointer;
+    font-size: 0.875rem;
+}
+
+.search-nav-btn:hover {
+    background-color: var(--primary-light);
+}
+
+.search-nav-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+}
+
+.search-close-btn {
+    padding: 6px;
+    border: none;
+    background: none;
+    color: var(--on-surface-secondary);
+    cursor: pointer;
+    border-radius: 4px;
+}
+
+.search-close-btn:hover {
+    background-color: var(--outline);
+    color: var(--on-surface);
+}
+
+/* Search Highlights */
+.search-highlight {
+    background-color: #fef3c7;
+    color: #000;
+    padding: 1px 3px;
+    border-radius: 2px;
+}
+
+[data-theme="dark"] .search-highlight {
+    background-color: #854d0e;
+    color: #fef3c7;
+}
+
+.search-highlight.current {
+    background-color: var(--primary);
+    color: white;
+}
+
+/* ============== Status Bar ============== */
+.report-status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 12px;
+    padding: 10px 16px;
+    background-color: var(--surface);
+    border: 1px solid var(--outline);
+    border-radius: 8px;
+    margin-top: 16px;
+    font-size: 0.8125rem;
+    color: var(--on-surface-secondary);
+}
+
+.status-left,
+.status-center,
+.status-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+}
+
+.status-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.status-item strong {
+    color: var(--on-surface);
+}
+
+.status-btn {
+    padding: 4px 10px;
+    border: 1px solid var(--outline);
+    border-radius: 4px;
+    background-color: var(--surface);
+    color: var(--on-surface-secondary);
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+.status-btn:hover {
+    background-color: var(--primary-light);
+    color: var(--primary);
+}
+
+/* ============== Column Filters ============== */
+.filter-row {
+    background-color: var(--surface-elevated) !important;
+}
+
+.filter-row.hidden {
+    display: none;
+}
+
+.filter-row td {
+    padding: 6px 4px !important;
+}
+
+.filter-input {
+    width: 100%;
+    padding: 6px 8px;
+    border: 1px solid var(--outline);
+    border-radius: 4px;
+    font-size: 0.8125rem;
+    background-color: var(--surface);
+    color: var(--on-surface);
+}
+
+.filter-input:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.filter-input::placeholder {
+    color: var(--on-surface-secondary);
+    font-size: 0.75rem;
+}
+
+.filter-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: 18px;
+    height: 18px;
+    padding: 0 5px;
+    background-color: var(--primary);
+    color: white;
+    border-radius: 9px;
+    font-size: 0.6875rem;
+    font-weight: 600;
+    margin-left: 4px;
+}
+
+/* ============== Column Resize ============== */
+.report-table th.resizable {
+    position: relative;
+}
+
+.report-table th.resizable::after {
+    content: '';
+    position: absolute;
+    right: 0;
+    top: 0;
+    bottom: 0;
+    width: 5px;
+    cursor: col-resize;
+    background: transparent;
+    transition: background-color 0.15s;
+}
+
+.report-table th.resizable:hover::after {
+    background-color: var(--primary-light);
+}
+
+.report-table th.resizing::after {
+    background-color: var(--primary);
+}
+
+.column-resize-indicator {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background-color: var(--primary);
+    z-index: 1000;
+    pointer-events: none;
+}
+
+/* ============== Enhanced Report Table ============== */
+.report-table-wrapper {
+    transform: scale(var(--viewer-zoom, 1));
+    transform-origin: top left;
+    transition: transform 0.15s ease;
+}
+
+.report-table {
+    font-size: var(--viewer-font-size, 14px);
+}
+
+.report-table th {
+    background-color: var(--primary);
+    color: white;
+    user-select: none;
+}
+
+.report-table th.sortable:hover {
+    background-color: var(--primary-hover);
+}
+
+.report-table .sort-indicator {
+    margin-left: 4px;
+    opacity: 0.7;
+}
+
+.report-table td[data-type="number"] {
+    text-align: right;
+    font-variant-numeric: tabular-nums;
+}
+
+.report-table td[data-type="date"] {
+    white-space: nowrap;
+}
+
+.report-table tbody tr.filtered-out {
+    display: none;
+}
+
+.report-table tbody tr.selected {
+    background-color: var(--primary-light) !important;
+}
+
+/* ============== Zoom Container ============== */
+.zoom-container {
+    overflow: auto;
+    position: relative;
+}
+
+.zoom-container.fit-width .report-table-wrapper {
+    width: 100%;
+}
+
+/* ============== Print Styles ============== */
+@media print {
+    /* Hide non-essential elements */
+    .navbar,
+    .viewer-toolbar,
+    .report-search-bar,
+    .report-status-bar,
+    .param-form,
+    .filter-row,
+    .page-header .page-actions,
+    .toast-container,
+    .loading-overlay,
+    #loadingOverlay {
+        display: none !important;
+    }
+
+    /* Reset zoom for print */
+    .report-table-wrapper {
+        transform: none !important;
+    }
+
+    /* Full width */
+    .container {
+        max-width: 100%;
+        padding: 0;
+    }
+
+    body {
+        background: white;
+        color: black;
+    }
+
+    /* Table styles for print */
+    .report-table-container {
+        overflow: visible;
+        border: none;
+    }
+
+    .report-table {
+        font-size: 9pt;
+        border-collapse: collapse;
+    }
+
+    .report-table th {
+        background-color: #207176 !important;
+        color: white !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    .report-table th,
+    .report-table td {
+        border: 1px solid #ccc;
+        padding: 6px 8px;
+    }
+
+    .report-table tbody tr:nth-child(even) {
+        background-color: #f5f5f5 !important;
+        -webkit-print-color-adjust: exact;
+        print-color-adjust: exact;
+    }
+
+    /* Report header for print */
+    .report-header-section {
+        border: none;
+        padding: 0 0 16px 0;
+        margin-bottom: 16px;
+        border-bottom: 2px solid #207176;
+    }
+
+    .report-header-meta {
+        margin-top: 8px;
+    }
+
+    .meta-badge {
+        border: none;
+        background: none;
+        padding: 0;
+        font-size: 10pt;
+    }
+
+    /* Page setup */
+    @page {
+        size: landscape;
+        margin: 0.5in;
+    }
+
+    /* Avoid breaking rows */
+    .report-table tr {
+        page-break-inside: avoid;
+    }
+}
+
+/* ============== Fullscreen Mode ============== */
+.viewer-fullscreen {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 9999;
+    background-color: var(--background);
+    padding: 20px;
+    overflow: auto;
+}
+
+.viewer-fullscreen .navbar {
+    display: none;
+}
+
+/* ============== Viewer Responsive ============== */
+@media (max-width: 768px) {
+    .viewer-toolbar {
+        gap: 6px;
+        padding: 8px 12px;
+    }
+
+    .toolbar-group {
+        gap: 2px;
+    }
+
+    .toolbar-separator {
+        display: none;
+    }
+
+    .toolbar-btn {
+        padding: 6px 8px;
+        font-size: 0.8125rem;
+    }
+
+    .toolbar-btn span:not(.toolbar-icon) {
+        display: none;
+    }
+
+    .toolbar-select {
+        min-width: 60px;
+        padding: 6px 8px;
+    }
+
+    .toolbar-label {
+        display: none;
+    }
+
+    .report-header-section {
+        flex-direction: column;
+        padding: 12px;
+    }
+
+    .report-header-meta {
+        width: 100%;
+        justify-content: flex-start;
+    }
+
+    .report-search-bar {
+        flex-wrap: wrap;
+    }
+
+    .search-input-wrapper {
+        width: 100%;
+        max-width: none;
+    }
+
+    .report-status-bar {
+        flex-direction: column;
+        align-items: flex-start;
+    }
+}
+
+/* ============== Keyboard Focus Indicators ============== */
+.toolbar-btn:focus-visible,
+.toolbar-select:focus-visible,
+.search-nav-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+}
+
+/* ============== Accessibility ============== */
+@media (prefers-reduced-motion: reduce) {
+    .report-search-bar,
+    .toolbar-btn,
+    .report-table-wrapper {
+        animation: none;
+        transition: none;
+    }
+}

@@ -152,6 +152,13 @@ body:has(.viewer-toolbar) .container {
     padding: 12px 16px;
 }
 
+/* Sidebar layout pages - full width, no padding */
+.container:has(.layout-with-sidebar) {
+    max-width: 100%;
+    padding: 0;
+    margin: 0;
+}
+
 /* ============== Page Header ============== */
 .page-header {
     display: flex;

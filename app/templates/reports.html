@@ -7,23 +7,20 @@
     <h1 class="page-title">Reports</h1>
     <div class="page-actions">
         <div class="search-box">
-            <span class="search-icon">🔍</span>
+            <i data-lucide="search" class="search-icon"></i>
             <input type="text" id="searchInput" class="search-input" placeholder="Search reports...">
         </div>
-        <button class="btn btn-secondary" id="scanBtn">
-            🔄 Scan Folder
-        </button>
         <button class="btn btn-primary" onclick="openModal('uploadModal')">
-            📤 Upload RDL
+            <i data-lucide="upload" style="width:16px;height:16px;"></i> Upload
         </button>
     </div>
 </div>
 
 <div id="reportsContainer">
     <div class="empty-state">
-        <div class="empty-state-icon">📊</div>
+        <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
         <div class="empty-state-title">No reports found</div>
-        <div class="empty-state-text">Upload RDL files or scan the reports folder to get started.</div>
+        <div class="empty-state-text">Upload RDL files to get started.</div>
     </div>
 </div>
 
@@ -40,7 +37,7 @@
                     <label class="form-label">RDL File</label>
                     <div class="file-upload-area" id="dropZone">
                         <input type="file" id="fileInput" accept=".rdl" style="display: none;" multiple>
-                        <div class="file-upload-icon">📁</div>
+                        <div class="file-upload-icon"><i data-lucide="folder-open" style="width:32px;height:32px;"></i></div>
                         <div class="file-upload-text">Drag & drop RDL files here or click to browse</div>
                         <div class="file-upload-hint">Only .rdl files are accepted</div>
                     </div>

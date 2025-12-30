@@ -37,11 +37,12 @@ function renderReports(reports) {
     if (reports.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <div class="empty-state-icon">📊</div>
+                <div class="empty-state-icon"><i data-lucide="file-text" style="width:48px;height:48px;"></i></div>
                 <div class="empty-state-title">No reports found</div>
-                <div class="empty-state-text">Upload RDL files or scan the reports folder to get started.</div>
+                <div class="empty-state-text">Upload RDL files to get started.</div>
             </div>
         `;
+        if (typeof lucide !== 'undefined') lucide.createIcons();
         return;
     }
 
@@ -74,12 +75,14 @@ function renderReports(reports) {
             html += `
                 <div class="report-card">
                     <div class="report-card-actions">
-                        <button class="btn-icon" onclick="event.stopPropagation(); promptDelete(${report.id}, '${escapeHtml(report.display_name)}')" title="Delete">🗑️</button>
+                        <button class="btn-icon" onclick="event.stopPropagation(); promptDelete(${report.id}, '${escapeHtml(report.display_name)}')" title="Delete">
+                            <i data-lucide="trash-2" style="width:16px;height:16px;"></i>
+                        </button>
                     </div>
                     <div class="report-card-content" onclick="openReport(${report.id})">
                         <div class="report-card-title">${escapeHtml(report.display_name)}</div>
-                        ${report.folder ? `<div class="report-card-folder">📁 ${escapeHtml(report.folder)}</div>` : ''}
-                        ${paramCount > 0 ? `<div class="report-card-params">📝 ${paramCount} parameter${paramCount > 1 ? 's' : ''}</div>` : ''}
+                        ${report.folder ? `<div class="report-card-folder"><i data-lucide="folder" style="width:14px;height:14px;"></i> ${escapeHtml(report.folder)}</div>` : ''}
+                        ${paramCount > 0 ? `<div class="report-card-params"><i data-lucide="sliders-horizontal" style="width:14px;height:14px;"></i> ${paramCount} parameter${paramCount > 1 ? 's' : ''}</div>` : ''}
                     </div>
                 </div>
             `;
@@ -88,6 +91,7 @@ function renderReports(reports) {
 
     html += '</div>';
     container.innerHTML = html;
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function openReport(reportId) {
@@ -157,11 +161,12 @@ function renderFileList() {
 
     fileList.innerHTML = selectedFiles.map((file, index) => `
         <div class="file-list-item">
-            <span class="file-list-name">📄 ${escapeHtml(file.name)}</span>
+            <span class="file-list-name"><i data-lucide="file" style="width:14px;height:14px;"></i> ${escapeHtml(file.name)}</span>
             <span class="file-list-size">${formatFileSize(file.size)}</span>
-            <button class="btn-icon" onclick="removeFile(${index})">✕</button>
+            <button class="btn-icon" onclick="removeFile(${index})"><i data-lucide="x" style="width:14px;height:14px;"></i></button>
         </div>
     `).join('');
+    if (typeof lucide !== 'undefined') lucide.createIcons();
 }
 
 function removeFile(index) {
@@ -283,9 +288,6 @@ async function confirmDelete() {
 document.addEventListener('DOMContentLoaded', () => {
     loadReports();
     setupDropZone();
-
-    // Scan button
-    document.getElementById('scanBtn').addEventListener('click', scanReports);
 
     // Search
     const searchInput = document.getElementById('searchInput');
